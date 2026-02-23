@@ -1,738 +1,303 @@
 <!doctype html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
-  <title>Ball Blast 2D</title>
-  <style>
-    html,body{margin:0;height:100%;background:#7ad9ff;overflow:hidden;touch-action:none}
-    canvas{display:block;width:100vw;height:100vh}
-
-    .topbar{
-      position:fixed;left:12px;right:12px;top:12px;z-index:10;
-      display:flex;gap:10px;align-items:center;justify-content:space-between;
-      font:800 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      color:rgba(255,255,255,.96);
-      pointer-events:none;
-    }
-    .pill{
-      display:flex;align-items:center;gap:10px;
-      padding:10px 12px;border-radius:14px;
-      background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.22);
-      backdrop-filter: blur(10px);
-      box-shadow:0 10px 30px rgba(0,0,0,.18);
-      pointer-events:none;
-      white-space:pre;
-    }
-
-    .bottombar{
-      position:fixed;left:12px;right:12px;bottom:12px;z-index:10;
-      display:flex;gap:10px;justify-content:space-between;
-      pointer-events:auto;
-    }
-    .btn{
-      flex:1;
-      padding:14px 14px;border-radius:16px;
-      background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.22);
-      color:rgba(255,255,255,.96);
-      font:900 14px/1 system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      backdrop-filter: blur(10px);
-      box-shadow:0 10px 30px rgba(0,0,0,.18);
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn.primary{
-      background:rgba(255,177,0,.75);
-      border:1px solid rgba(255,255,255,.35);
-      color:#2b1f00;
-    }
-
-    .modal{
-      position:fixed; inset:0; z-index:20;
-      display:none;
-      align-items:center; justify-content:center;
-      background:rgba(0,0,0,.40);
-      backdrop-filter: blur(6px);
-      pointer-events:auto;
-    }
-    .card{
-      width:min(440px, calc(100vw - 32px));
-      border-radius:18px;
-      background:rgba(10,20,40,.88);
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow:0 20px 60px rgba(0,0,0,.35);
-      overflow:hidden;
-      color:#fff;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    }
-    .cardHeader{
-      padding:14px 16px;
-      display:flex;align-items:center;justify-content:space-between;
-      font-weight:900;
-      border-bottom:1px solid rgba(255,255,255,.10);
-    }
-    .cardBody{ padding:14px 16px; display:grid; gap:10px; }
-    .shopItem{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:12px 12px; border-radius:14px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .shopLeft{ display:flex; flex-direction:column; gap:4px; }
-    .shopTitle{ font-weight:900; }
-    .shopDesc{ font-size:12px; opacity:.80; }
-    .buy{
-      padding:10px 12px; border-radius:12px;
-      background:rgba(255,177,0,.85);
-      border:1px solid rgba(255,255,255,.30);
-      color:#2b1f00;
-      font-weight:900;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .buy:active{ transform: translateY(1px); }
-    .xbtn{
-      pointer-events:auto;
-      padding:8px 10px;border-radius:12px;
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.14);
-      color:#fff;
-      font-weight:900;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Auto Arena Survivor</title>
+<style>
+html,body{margin:0;height:100%;background:#0e1117;overflow:hidden;touch-action:none}
+canvas{display:block;width:100vw;height:100vh}
+.ui{
+position:fixed;top:12px;left:12px;right:12px;
+display:flex;justify-content:space-between;
+font:800 13px system-ui;
+color:#fff;
+pointer-events:none;
+}
+.cardOverlay{
+position:fixed;inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+background:rgba(0,0,0,.6);
+backdrop-filter:blur(6px);
+}
+.cardWrap{
+display:flex;
+gap:14px;
+}
+.card{
+width:120px;
+padding:14px;
+border-radius:16px;
+background:#1a1f29;
+border:1px solid rgba(255,255,255,.08);
+color:#fff;
+font:700 12px system-ui;
+text-align:center;
+}
+</style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="pill" id="stats">…</div>
-    <div class="pill" id="money">…</div>
-  </div>
 
-  <div class="bottombar">
-    <button class="btn" id="btnShop">МАГАЗИН</button>
-    <button class="btn primary" id="btnPlay">BATTLE</button>
-    <button class="btn" id="btnReset">СБРОС</button>
-  </div>
+<div class="ui">
+<div id="leftUI"></div>
+<div id="rightUI"></div>
+</div>
 
-  <div class="modal" id="shopModal">
-    <div class="card">
-      <div class="cardHeader">
-        <div>МАГАЗИН</div>
-        <button class="xbtn" id="shopClose">✕</button>
-      </div>
-      <div class="cardBody" id="shopList"></div>
-    </div>
-  </div>
+<div class="cardOverlay" id="upgradeOverlay">
+<div class="cardWrap" id="cardWrap"></div>
+</div>
 
-  <canvas id="c"></canvas>
+<canvas id="c"></canvas>
 
 <script>
-(() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
-  ctx.imageSmoothingEnabled = false;
-
-  // UI
-  const elStats = document.getElementById('stats');
-  const elMoney = document.getElementById('money');
-  const btnShop = document.getElementById('btnShop');
-  const btnPlay = document.getElementById('btnPlay');
-  const btnReset = document.getElementById('btnReset');
-  const shopModal = document.getElementById('shopModal');
-  const shopClose = document.getElementById('shopClose');
-  const shopList = document.getElementById('shopList');
-
-  // ---------- crisp scaling
-  let DPR = 2, W=0, H=0;
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>a+Math.random()*(b-a);
-
-  function resize(){
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-    W = Math.floor(window.innerWidth);
-    H = Math.floor(window.innerHeight);
-    canvas.width  = Math.floor(W * DPR);
-    canvas.height = Math.floor(H * DPR);
-    canvas.style.width = W+'px';
-    canvas.style.height = H+'px';
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-  }
-  window.addEventListener('resize', resize, {passive:true});
-  resize();
-
-  // ---------- save/load
-  const SAVE_KEY = "bb2d_save_v2";
-  function loadSave(){
-    try {
-      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
-      return s && typeof s === "object" ? s : {};
-    } catch { return {}; }
-  }
-  function saveSave(){
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      level: state.level,
-      stage: state.stage,
-      coins: state.coins,
-      best: state.best,
-      dmg: state.dmg,
-      fireRate: state.fireRate,
-      hpMax: state.hpMax
-    }));
-  }
-
-  // ---------- game state
-  const state = {
-    level: 1,
-    stage: 1,
-    score: 0,
-    coins: 0,
-    best: 0,
-    dmg: 1,
-    fireRate: 12,
-    bulletSpeed: 920,
-    hpMax: 3,
-    hp: 3,
-    lastShot: 0,
-    paused: false,
-    gameOver: false,
-  };
-
-  // load
-  const s = loadSave();
-  state.level = s.level ?? 1;
-  state.stage = s.stage ?? 1;
-  state.coins = s.coins ?? 0;
-  state.best  = s.best ?? 0;
-  state.dmg = s.dmg ?? 1;
-  state.fireRate = s.fireRate ?? 12;
-  state.hpMax = s.hpMax ?? 3;
-  state.hp = state.hpMax;
-
-  const world = {
-    groundY: () => H - 96,
-    floorY:  () => H - 96 + 42
-  };
-
-  // cannon
-  const cannon = {
-    x: W/2,
-    y: () => world.groundY(),
-    dragging: false,
-    hitW: 74,   // hitbox width
-    hitH: 46,   // hitbox height
-  };
-
-  // entities
-  const bullets = [];
-  const balls = [];
-  const coinDrops = [];
-
-  function addBall(x,y,r,hp,vx,vy){
-    balls.push({x,y,r,hp,vx,vy, hitFlash:0});
-  }
-
-  function spawnLevel(lvl){
-    bullets.length=0;
-    balls.length=0;
-    coinDrops.length=0;
-    state.score = 0;
-    state.hp = state.hpMax;
-    state.gameOver = false;
-
-    const count = clamp(3 + Math.floor(lvl*0.35), 3, 10);
-    const baseHP = 6 + Math.floor(lvl*1.2);
-
-    for(let i=0;i<count;i++){
-      const r = rand(22, 44);
-      const x = rand(r+16, W - r - 16);
-      const y = rand(120, 260);
-      const hp = Math.max(1, baseHP + Math.floor(rand(-4,9)));
-      addBall(x,y,r,hp, rand(-90,90), rand(-30,30));
-    }
-  }
-
-  // IMPORTANT: split like Ball Blast
-  function splitBall(ball){
-    if (ball.r < 26) return;
-    const newR = ball.r * 0.68;
-    const hpEach = Math.max(1, Math.floor(ball.hp/2));
-    const push = 120;
-
-    addBall(ball.x - newR*0.6, ball.y, newR, hpEach, -Math.abs(ball.vx) - push, -220);
-    addBall(ball.x + newR*0.6, ball.y, newR, hpEach,  Math.abs(ball.vx) + push, -220);
-  }
-
-  function shoot(now){
-    const interval = 1000/state.fireRate;
-    if (now - state.lastShot < interval) return;
-    state.lastShot = now;
-
-    bullets.push({
-      x: cannon.x,
-      y: cannon.y() - 66,
-      vy: -state.bulletSpeed,
-      life: 1.35
-    });
-  }
-
-  function dropCoins(x,y,amount){
-    const n = clamp(Math.floor(amount/2), 1, 6);
-    for(let i=0;i<n;i++){
-      coinDrops.push({
-        x, y,
-        vx: rand(-140,140),
-        vy: rand(-360,-200),
-        g: 900,
-        life: 2.3
-      });
-    }
-  }
-
-  // ---------- INPUT
-  function setCannonX(x){
-    cannon.x = clamp(x, 52, W-52);
-  }
-
-  canvas.addEventListener('pointerdown', (e)=>{
-    if (state.gameOver) { location.reload(); return; }
-    if (state.paused) return;
-    cannon.dragging = true;
-    setCannonX(e.clientX);
-  }, {passive:true});
-
-  canvas.addEventListener('pointermove', (e)=>{
-    if (!cannon.dragging || state.paused) return;
-    setCannonX(e.clientX);
-  }, {passive:true});
-
-  const endDrag = ()=>{ cannon.dragging=false; };
-  canvas.addEventListener('pointerup', endDrag, {passive:true});
-  canvas.addEventListener('pointercancel', endDrag, {passive:true});
-
-  // ---------- UI actions
-  btnShop.addEventListener('click', ()=>{
-    state.paused = true;
-    shopModal.style.display = 'flex';
-    renderShop();
-  });
-
-  shopClose.addEventListener('click', ()=>{
-    shopModal.style.display = 'none';
-    state.paused = false;
-    saveSave();
-  });
-
-  btnPlay.addEventListener('click', ()=>{
-    // start/restart current level
-    state.paused = false;
-    spawnLevel(state.level);
-    saveSave();
-  });
-
-  btnReset.addEventListener('click', ()=>{
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
-  });
-
-  // ---------- SHOP
-  function pricePow(base, lvl){ return Math.floor(base * Math.pow(1.18, lvl)); }
-
-  function renderShop(){
-    // treat current stats as levels
-    const dmgLvl = Math.max(0, state.dmg - 1);
-    const frLvl  = Math.max(0, Math.round(state.fireRate - 12));
-    const hpLvl  = Math.max(0, state.hpMax - 3);
-
-    const items = [
-      {
-        title: "УРОН",
-        desc: `+1 урон (текущий: ${state.dmg})`,
-        price: pricePow(60, dmgLvl),
-        buy: ()=>{ state.dmg += 1; }
-      },
-      {
-        title: "СКОРОСТЬ СТРЕЛЬБЫ",
-        desc: `+1 выстр/сек (текущая: ${Math.round(state.fireRate)})`,
-        price: pricePow(75, frLvl),
-        buy: ()=>{ state.fireRate = Math.min(26, state.fireRate + 1); }
-      },
-      {
-        title: "МАКС. HP",
-        desc: `+1 HP (текущий: ${state.hpMax})`,
-        price: pricePow(90, hpLvl),
-        buy: ()=>{ state.hpMax += 1; state.hp = state.hpMax; }
-      }
-    ];
-
-    shopList.innerHTML = "";
-    for (const it of items){
-      const row = document.createElement('div');
-      row.className = "shopItem";
-
-      const left = document.createElement('div');
-      left.className = "shopLeft";
-      const t = document.createElement('div');
-      t.className = "shopTitle";
-      t.textContent = it.title;
-      const d = document.createElement('div');
-      d.className = "shopDesc";
-      d.textContent = it.desc;
-      left.appendChild(t); left.appendChild(d);
-
-      const buy = document.createElement('div');
-      buy.className = "buy";
-      buy.textContent = `${it.price} 🪙`;
-      buy.addEventListener('click', ()=>{
-        if (state.coins < it.price) return;
-        state.coins -= it.price;
-        it.buy();
-        saveSave();
-        renderShop();
-        updateUI();
-      });
-
-      row.appendChild(left);
-      row.appendChild(buy);
-      shopList.appendChild(row);
-    }
-  }
-
-  // ---------- collisions (IMPORTANT FIX)
-  function ballHitsCannon(ball){
-    // rectangle hitbox around cannon base
-    const cx = cannon.x;
-    const cy = cannon.y() + 18; // base area
-    const rx = cx - cannon.hitW/2;
-    const ry = cy - cannon.hitH/2;
-    const rw = cannon.hitW;
-    const rh = cannon.hitH;
-
-    // circle-rect collision
-    const closestX = clamp(ball.x, rx, rx+rw);
-    const closestY = clamp(ball.y, ry, ry+rh);
-    const dx = ball.x - closestX;
-    const dy = ball.y - closestY;
-    return (dx*dx + dy*dy) <= (ball.r*ball.r);
-  }
-
-  function levelClear(){
-    state.best = Math.max(state.best, state.score);
-    state.coins += 40 + Math.floor(state.level*4);
-
-    state.level++;
-    if (state.level % 10 === 1 && state.level>1) state.stage++;
-    saveSave();
-    spawnLevel(state.level);
-  }
-
-  // ---------- rendering
-  function drawBackground(){
-    ctx.fillStyle = '#7ad9ff';
-    ctx.fillRect(0,0,W,H);
-
-    // mountains
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = '#43bce9';
-    tri(40, H*0.67, W*0.35, H*0.18, W*0.62, H*0.67);
-    tri(W*0.24, H*0.74, W*0.55, H*0.30, W*0.92, H*0.74);
-    ctx.globalAlpha = 1;
-
-    // ground
-    ctx.fillStyle = '#70d65f';
-    ctx.fillRect(0, world.groundY()+50, W, H-(world.groundY()+50));
-
-    // floor line (balls bounce here, NO GAME OVER)
-    ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = '#2a2f3a';
-    ctx.lineWidth = 3;
-    line(0, world.floorY(), W, world.floorY());
-    ctx.globalAlpha = 1;
-  }
-
-  function tri(x1,y1,x2,y2,x3,y3){
-    ctx.beginPath();
-    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3);
-    ctx.closePath();
-    ctx.fill();
-  }
-  function line(x1,y1,x2,y2){
-    ctx.beginPath();
-    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
-    ctx.stroke();
-  }
-  function roundRect(x,y,w,h,r,fill=false,stroke=false){
-    const rr = Math.min(r, w/2, h/2);
-    ctx.beginPath();
-    ctx.moveTo(x+rr, y);
-    ctx.arcTo(x+w, y, x+w, y+h, rr);
-    ctx.arcTo(x+w, y+h, x, y+h, rr);
-    ctx.arcTo(x, y+h, x, y, rr);
-    ctx.arcTo(x, y, x+w, y, rr);
-    ctx.closePath();
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
-  }
-
-  // NEW cannon (clean + premium 2D)
-  function drawCannon(){
-    const x = cannon.x, y = cannon.y();
-
-    // shadow
-    ctx.globalAlpha = 0.20;
-    ctx.fillStyle = '#000';
-    roundRect(x-46, y+36, 92, 14, 7, true);
-    ctx.globalAlpha = 1;
-
-    // wheels
-    wheel(x-28, y+30);
-    wheel(x+28, y+30);
-
-    // base body
-    ctx.fillStyle = '#263042';
-    roundRect(x-46, y+12, 92, 34, 12, true);
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    roundRect(x-46, y+12, 92, 34, 12, false, true);
-    ctx.globalAlpha = 1;
-
-    // barrel mount
-    ctx.fillStyle = '#1c2433';
-    roundRect(x-14, y-6, 28, 20, 10, true);
-
-    // barrel (2 parts)
-    ctx.fillStyle = '#d7dce8';
-    roundRect(x-10, y-54, 20, 62, 10, true);
-    ctx.globalAlpha = 0.14;
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-    roundRect(x-10, y-54, 20, 62, 10, false, true);
-    ctx.globalAlpha = 1;
-
-    // muzzle ring
-    ctx.fillStyle = '#bfc6d6';
-    roundRect(x-14, y-66, 28, 14, 7, true);
-
-    // small glow
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#ffb100';
-    ctx.beginPath(); ctx.arc(x, y-56, 11, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  function wheel(x,y){
-    ctx.fillStyle = '#161b24';
-    ctx.beginPath(); ctx.arc(x,y,15,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 0.20;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(x,y,15,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawBall(ball){
-    const {x,y,r,hp} = ball;
-    ctx.fillStyle = '#2ecc71';
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-
-    ctx.globalAlpha = 0.25;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    if (ball.hitFlash > 0){
-      ctx.globalAlpha = clamp(ball.hitFlash,0,1) * 0.20;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(x,y,r*1.03,0,Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.fillStyle = '#fff';
-    ctx.font = `${Math.round(r*0.82)}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(hp), x, y+1);
-  }
-
-  function drawBullet(b){
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill();
-  }
-
-  function drawCoin(c){
-    ctx.fillStyle = '#ffd33d';
-    ctx.beginPath(); ctx.arc(c.x,c.y,7,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 0.25;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(c.x,c.y,7,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
-  function updateUI(){
-    elStats.textContent =
-      `LEVEL ${state.level}  •  STAGE ${state.stage}\n`+
-      `SCORE ${state.score}  •  BEST ${state.best}\n`+
-      `HP ${state.hp}/${state.hpMax}  •  DMG ${state.dmg}  •  FR ${Math.round(state.fireRate)}`;
-
-    elMoney.textContent =
-      `🪙 ${state.coins}`;
-  }
-
-  // ---------- init level
-  spawnLevel(state.level);
-  updateUI();
-
-  // ---------- loop
-  let last = performance.now();
-  function tick(now){
-    const dt = Math.min(0.033, (now-last)/1000);
-    last = now;
-
-    if (!state.paused && !state.gameOver){
-      // auto shoot
-      shoot(now);
-
-      // bullets
-      for (let i=bullets.length-1;i>=0;i--){
-        const b = bullets[i];
-        b.y += b.vy * dt;
-        b.life -= dt;
-        if (b.life<=0 || b.y < -50) bullets.splice(i,1);
-      }
-
-      // balls physics
-      for (let i=balls.length-1;i>=0;i--){
-        const ball = balls[i];
-        ball.x += ball.vx * dt;
-        ball.y += ball.vy * dt;
-        ball.vy += 290 * dt;
-
-        // walls
-        if (ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -1; }
-        if (ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx *= -1; }
-
-        // ceiling
-        if (ball.y - ball.r < 80){ ball.y = 80 + ball.r; ball.vy *= -1; }
-
-        // floor bounce (NO lose here)
-        const fy = world.floorY();
-        if (ball.y + ball.r >= fy){
-          ball.y = fy - ball.r;
-          ball.vy *= -0.78;
-        }
-
-        // HIT CANNON = LOSE / DAMAGE
-        if (ballHitsCannon(ball)){
-          state.hp -= 1;
-          if (navigator.vibrate) navigator.vibrate(18);
-          // push ball up slightly so it doesn't insta-tick multiple times
-          ball.vy = Math.min(ball.vy, -220);
-          ball.y -= 6;
-
-          if (state.hp <= 0){
-            state.gameOver = true;
-            state.best = Math.max(state.best, state.score);
-            saveSave();
-          }
-        }
-
-        ball.hitFlash = Math.max(0, ball.hitFlash - dt*6);
-      }
-
-      // coins update
-      for (let i=coinDrops.length-1;i>=0;i--){
-        const c = coinDrops[i];
-        c.x += c.vx * dt;
-        c.y += c.vy * dt;
-        c.vy += c.g * dt;
-        c.life -= dt;
-
-        const fy = world.floorY();
-        if (c.y >= fy){
-          c.y = fy;
-          c.vy *= -0.45;
-          c.vx *= 0.85;
-          if (Math.abs(c.vy) < 35) c.vy = 0;
-        }
-
-        // collect
-        const d = Math.hypot(c.x - cannon.x, c.y - (cannon.y()+24));
-        if (d < 46){
-          state.coins += 1;
-          coinDrops.splice(i,1);
-          continue;
-        }
-        if (c.life<=0) coinDrops.splice(i,1);
-      }
-
-      // bullet-ball collisions
-      for (let bi=bullets.length-1; bi>=0; bi--){
-        const b = bullets[bi];
-        let hitIndex = -1;
-
-        for (let i=0;i<balls.length;i++){
-          const ball = balls[i];
-          const d = Math.hypot(b.x - ball.x, b.y - ball.y);
-          if (d <= ball.r + 6){ hitIndex = i; break; }
-        }
-
-        if (hitIndex !== -1){
-          const ball = balls[hitIndex];
-          ball.hp -= state.dmg;
-          state.score += state.dmg;
-          ball.hitFlash = 1;
-          bullets.splice(bi,1);
-
-          if (ball.hp <= 0){
-            state.coins += 5 + Math.floor(state.level/2);
-            dropCoins(ball.x, ball.y, 12 + state.level);
-            splitBall(ball);
-            balls.splice(hitIndex,1);
-          }
-        }
-      }
-
-      // clear -> next level
-      if (balls.length === 0 && !state.gameOver){
-        levelClear();
-      }
-
-      updateUI();
-    }
-
-    // render
-    drawBackground();
-
-    for (const b of bullets) drawBullet(b);
-    for (const ball of balls) drawBall(ball);
-    for (const c of coinDrops) drawCoin(c);
-
-    drawCannon();
-
-    if (state.gameOver){
-      ctx.globalAlpha = 0.42;
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0,0,W,H);
-      ctx.globalAlpha = 1;
-
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '900 30px system-ui,-apple-system,Segoe UI,Roboto,Arial';
-      ctx.fillText('GAME OVER', W/2, H/2 - 18);
-      ctx.font = '800 14px system-ui,-apple-system,Segoe UI,Roboto,Arial';
-      ctx.fillStyle = 'rgba(255,255,255,.92)';
-      ctx.fillText('Tap to restart', W/2, H/2 + 22);
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  requestAnimationFrame(tick);
-})();
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+let DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+let W=0,H=0;
+
+function resize(){
+DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+W = window.innerWidth;
+H = window.innerHeight;
+canvas.width = W * DPR;
+canvas.height = H * DPR;
+canvas.style.width = W+"px";
+canvas.style.height = H+"px";
+ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize);
+resize();
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function dist(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by)}
+function rand(a,b){return a+Math.random()*(b-a)}
+
+let player={
+x:W/2,
+y:H/2,
+r:14,
+speed:210,
+hp:100,
+maxHp:100,
+xp:0,
+level:1,
+damage:10,
+fireRate:5,
+lastShot:0
+}
+
+let bullets=[];
+let enemies=[];
+let expOrbs=[];
+
+let wave=1;
+let bossSpawned=false;
+
+function spawnEnemy(boss=false){
+let e={
+x:rand(0,W),
+y:rand(0,H),
+r:boss?40:14,
+hp:boss?600:40+wave*8,
+speed:boss?60:80+wave*2,
+boss:boss
+}
+enemies.push(e);
+}
+
+function spawnWave(){
+for(let i=0;i<5+wave*2;i++)spawnEnemy();
+}
+
+spawnWave();
+
+let joy={active:false,baseX:0,baseY:0,dx:0,dy:0}
+
+canvas.addEventListener("pointerdown",e=>{
+joy.active=true;
+joy.baseX=e.clientX;
+joy.baseY=e.clientY;
+});
+
+canvas.addEventListener("pointermove",e=>{
+if(!joy.active)return;
+joy.dx=e.clientX-joy.baseX;
+joy.dy=e.clientY-joy.baseY;
+});
+
+canvas.addEventListener("pointerup",()=>joy.active=false);
+
+function shoot(time){
+if(time-player.lastShot < 1000/player.fireRate)return;
+player.lastShot=time;
+let nearest=null;
+let nd=999999;
+for(let e of enemies){
+let d=dist(player.x,player.y,e.x,e.y);
+if(d<nd){nd=d;nearest=e;}
+}
+if(!nearest)return;
+let angle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+bullets.push({
+x:player.x,
+y:player.y,
+vx:Math.cos(angle)*520,
+vy:Math.sin(angle)*520,
+life:1.2
+});
+}
+
+function levelUp(){
+player.level++;
+player.xp=0;
+openUpgrade();
+}
+
+function openUpgrade(){
+let overlay=document.getElementById("upgradeOverlay");
+let wrap=document.getElementById("cardWrap");
+wrap.innerHTML="";
+overlay.style.display="flex";
+
+let upgrades=[
+{name:"Damage +5",apply:()=>player.damage+=5},
+{name:"Attack Speed +1",apply:()=>player.fireRate+=1},
+{name:"Max HP +20",apply:()=>{player.maxHp+=20;player.hp+=20}},
+{name:"Move Speed +20",apply:()=>player.speed+=20}
+];
+
+upgrades.sort(()=>Math.random()-0.5);
+let selected=upgrades.slice(0,3);
+
+for(let u of selected){
+let div=document.createElement("div");
+div.className="card";
+div.innerText=u.name;
+div.onclick=()=>{
+u.apply();
+overlay.style.display="none";
+}
+wrap.appendChild(div);
+}
+}
+
+function updateUI(){
+document.getElementById("leftUI").innerText=
+"HP "+player.hp+"/"+player.maxHp+
+"\nLVL "+player.level+
+"\nWAVE "+wave;
+
+document.getElementById("rightUI").innerText=
+"XP "+Math.floor(player.xp);
+}
+
+let last=performance.now();
+
+function loop(now){
+let dt=(now-last)/1000;
+last=now;
+
+if(joy.active){
+let mag=Math.hypot(joy.dx,joy.dy);
+if(mag>0){
+player.x+=joy.dx/mag*player.speed*dt;
+player.y+=joy.dy/mag*player.speed*dt;
+}
+}
+
+player.x=clamp(player.x,0,W);
+player.y=clamp(player.y,0,H);
+
+shoot(now);
+
+for(let i=bullets.length-1;i>=0;i--){
+let b=bullets[i];
+b.x+=b.vx*dt;
+b.y+=b.vy*dt;
+b.life-=dt;
+if(b.life<=0)bullets.splice(i,1);
+}
+
+for(let i=enemies.length-1;i>=0;i--){
+let e=enemies[i];
+let angle=Math.atan2(player.y-e.y,player.x-e.x);
+e.x+=Math.cos(angle)*e.speed*dt;
+e.y+=Math.sin(angle)*e.speed*dt;
+
+if(dist(e.x,e.y,player.x,player.y)<e.r+player.r){
+player.hp-=20*dt;
+if(player.hp<=0)location.reload();
+}
+
+for(let j=bullets.length-1;j>=0;j--){
+let b=bullets[j];
+if(dist(e.x,e.y,b.x,b.y)<e.r){
+e.hp-=player.damage;
+bullets.splice(j,1);
+if(e.hp<=0){
+player.xp+=20;
+expOrbs.push({x:e.x,y:e.y});
+enemies.splice(i,1);
+break;
+}
+}
+}
+}
+
+if(player.xp>=100){
+levelUp();
+}
+
+if(enemies.length===0){
+wave++;
+if(wave%5===0&&!bossSpawned){
+spawnEnemy(true);
+bossSpawned=true;
+}else{
+spawnWave();
+bossSpawned=false;
+}
+}
+
+ctx.fillStyle="#0e1117";
+ctx.fillRect(0,0,W,H);
+
+ctx.strokeStyle="rgba(255,255,255,.05)";
+for(let i=0;i<W;i+=60){
+ctx.beginPath();
+ctx.moveTo(i,0);
+ctx.lineTo(i,H);
+ctx.stroke();
+}
+
+for(let b of bullets){
+ctx.fillStyle="#fff";
+ctx.beginPath();
+ctx.arc(b.x,b.y,4,0,Math.PI*2);
+ctx.fill();
+}
+
+for(let e of enemies){
+ctx.fillStyle=e.boss?"#ff4757":"#2ed573";
+ctx.beginPath();
+ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+ctx.fill();
+}
+
+ctx.fillStyle="#fff";
+ctx.beginPath();
+ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+ctx.fill();
+
+updateUI();
+requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
