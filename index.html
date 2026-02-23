@@ -3,650 +3,532 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <title>Arena Defense</title>
+  <title>Ball Blast 2D</title>
   <style>
-    html, body { margin:0; padding:0; background:#07060a; height:100%; overflow:hidden; touch-action:none; }
+    html, body { margin:0; padding:0; background:#77d9ff; height:100%; overflow:hidden; touch-action:none; }
     #game { width:100vw; height:100vh; }
-
-    /* мини-премиум HUD */
     .hud {
-      position: fixed; left: 12px; top: 12px; z-index: 20;
-      font: 700 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: rgba(255,255,255,.92);
-      background: rgba(18,14,26,.55);
-      border: 1px solid rgba(180,120,255,.25);
+      position: fixed; left: 12px; top: 12px; z-index: 50;
+      font: 800 13px/1.25 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: rgba(255,255,255,.95);
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.25);
       padding: 10px 12px; border-radius: 14px;
       backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
       pointer-events: none;
-      max-width: 78vw;
-      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+      white-space: pre;
     }
     .tip {
-      position: fixed; left: 12px; bottom: 12px; z-index: 20;
-      font: 600 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: rgba(255,255,255,.85);
-      background: rgba(18,14,26,.45);
-      border: 1px solid rgba(255,102,245,.18);
+      position: fixed; left: 12px; bottom: 12px; z-index: 50;
+      font: 700 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: rgba(255,255,255,.92);
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.22);
       padding: 10px 12px; border-radius: 14px;
       backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.16);
       pointer-events: none;
-      box-shadow: 0 12px 40px rgba(0,0,0,.35);
     }
   </style>
 </head>
 <body>
   <div class="hud" id="hud">Loading...</div>
-  <div class="tip">ЛЕВО: джойстик • ПРАВО: УЛЬТА • Стрельба авто</div>
-
+  <div class="tip">Тяни палец — двигай пушку • Стрельба авто • Ульта справа снизу</div>
   <div id="game"></div>
 
-  <!-- Phaser CDN -->
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
 
   <script>
-    // ===== util
-    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-    function dist(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return Math.hypot(dx,dy); }
+    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
     class GameScene extends Phaser.Scene {
       constructor(){ super('game'); }
 
       create(){
-        // safe area-ish
         this.W = this.scale.width;
         this.H = this.scale.height;
 
-        // arena rect
-        this.arena = { x: 18, y: 78, w: this.W - 36, h: this.H - 126 };
-        this.center = { x: this.arena.x + this.arena.w/2, y: this.arena.y + this.arena.h/2 };
+        // Ground line
+        this.groundY = this.H - 90;
 
-        // background
-        this.bg = this.add.graphics();
-        this.drawArena();
-
-        // state
-        this.hpMax = 100;
-        this.hp = this.hpMax;
-        this.xp = 0;
+        // progression / economy
         this.level = 1;
-        this.wave = 1;
-        this.kills = 0;
+        this.stage = 1;              // можно позже сделать "этапы" по 10 уровней
+        this.score = 0;
+        this.coins = 0;
+        this.best = Number(localStorage.getItem("bb_best")||0);
 
-        // shooting
-        this.fireRate = 8;      // bullets per sec
-        this.bulletSpeed = 620;
-        this.damage = 12;
-        this.range = 520;
-        this.lastShot = 0;
+        // player stats (upgrades)
+        this.hpMax = 3;
+        this.hp = this.hpMax;
+        this.dmg = 1;
+        this.fireRate = 12;          // bullets per second
+        this.bulletSpeed = 820;
 
         // ultimate
-        this.ultCharge = 0;     // 0..1
+        this.ultCharge = 0;          // 0..1
         this.ultReady = false;
-        this.ultCooldown = 0;   // seconds remaining (visual)
-        this.ultName = "NOVA";
+        this.ultName = "RAIN";
+
+        // gameplay
+        this.isPausedOverlay = false;
+        this.lastShot = 0;
+
+        // visuals: background (simple 2D)
+        this.bg = this.add.graphics();
+        this.drawBackground();
 
         // groups
         this.bullets = this.add.group();
-        this.enemies = this.add.group();
-        this.particles = this.add.group();
-        this.floating = this.add.group();
+        this.balls = this.add.group();
+        this.coinsDrops = this.add.group();
 
-        // player
-        this.player = this.add.circle(this.center.x, this.center.y, 14, 0x9b5cff, 1);
-        this.player.setStrokeStyle(2, 0xff66f5, 0.35);
-        this.player.inv = 0;
+        // cannon (2D, без 3D)
+        this.cannon = this.add.container(this.W/2, this.groundY);
+        const base = this.add.rectangle(0, 18, 80, 34, 0x2a2f3a, 1).setStrokeStyle(2, 0xffffff, 0.22);
+        const wheelL = this.add.circle(-26, 26, 14, 0x1b1f28, 1).setStrokeStyle(2, 0xffffff, 0.18);
+        const wheelR = this.add.circle( 26, 26, 14, 0x1b1f28, 1).setStrokeStyle(2, 0xffffff, 0.18);
+        const barrel = this.add.rectangle(0, -6, 18, 52, 0xcfd6e4, 1).setStrokeStyle(2, 0x000000, 0.12);
+        this.cannon.add([base, wheelL, wheelR, barrel]);
 
-        // mobile controls
-        this.leftPointerId = null;
-        this.rightPointerId = null;
-        this.joyStart = null;
-        this.joyVec = new Phaser.Math.Vector2(0,0);
+        // aim is always up; we move only X
+        this.cannonMinX = 40;
+        this.cannonMaxX = this.W - 40;
 
-        // ult button zone (right side)
-        this.ultZone = { x: this.W*0.62, y: this.H*0.58, w: this.W*0.38, h: this.H*0.42 };
-
+        // mobile control: drag anywhere
+        this.dragging = false;
         this.input.on('pointerdown', (p)=>{
-          if (p.x < this.W*0.55 && this.leftPointerId === null){
-            this.leftPointerId = p.id;
-            this.joyStart = new Phaser.Math.Vector2(p.x, p.y);
-            this.joyVec.set(0,0);
-          } else if (this.rightPointerId === null){
-            this.rightPointerId = p.id;
-            this.tryUltimate(); // right tap = ult
-          }
+          if (this.isPausedOverlay) return;
+          this.dragging = true;
+          this.setCannonX(p.x);
+          // if tap in ult zone, try ult
+          if (this.isInUltZone(p.x, p.y)) this.tryUlt();
         });
-
         this.input.on('pointermove', (p)=>{
-          if (p.id === this.leftPointerId && this.joyStart){
-            const dx = p.x - this.joyStart.x;
-            const dy = p.y - this.joyStart.y;
-            const v = new Phaser.Math.Vector2(dx, dy);
-            const len = v.length();
-            const max = 72;
-            if (len > max) v.scale(max / len);
-            this.joyVec = v.scale(1 / max);
-          }
+          if (this.isPausedOverlay) return;
+          if (!this.dragging) return;
+          this.setCannonX(p.x);
         });
+        this.input.on('pointerup', ()=>{ this.dragging = false; });
+        this.input.on('pointercancel', ()=>{ this.dragging = false; });
 
-        const endPointer = (p)=>{
-          if (p.id === this.leftPointerId){
-            this.leftPointerId = null;
-            this.joyStart = null;
-            this.joyVec.set(0,0);
-          }
-          if (p.id === this.rightPointerId){
-            this.rightPointerId = null;
-          }
-        };
-        this.input.on('pointerup', endPointer);
-        this.input.on('pointerout', endPointer);
-        this.input.on('pointercancel', endPointer);
-
-        // spawn system
-        this.waveAliveTarget = 0;
-        this.waveSpawned = 0;
-        this.spawnTimer = 0;
-        this.waveIntro();
-
-        // upgrade overlay (simple, premium style)
-        this.upgradeOpen = false;
-        this.upgradeUI = null;
-
-        // hud
-        this.hudEl = document.getElementById('hud');
+        // HUD
+        this.hudEl = document.getElementById("hud");
         this.updateHud();
 
-        // subtle screen vignette-ish
-        this.vignette = this.add.graphics();
-        this.drawVignette();
+        // balls spawn
+        this.waveSpawned = false;
+        this.spawnLevel(this.level);
 
         // resize
-        this.scale.on('resize', (gameSize)=>{
-          this.W = gameSize.width;
-          this.H = gameSize.height;
-          this.arena = { x: 18, y: 78, w: this.W - 36, h: this.H - 126 };
-          this.center = { x: this.arena.x + this.arena.w/2, y: this.arena.y + this.arena.h/2 };
-          this.ultZone = { x: this.W*0.62, y: this.H*0.58, w: this.W*0.38, h: this.H*0.42 };
-          this.drawArena(true);
-          this.drawVignette(true);
+        this.scale.on('resize', (gs)=>{
+          this.W = gs.width; this.H = gs.height;
+          this.groundY = this.H - 90;
+          this.cannon.y = this.groundY;
+          this.cannonMaxX = this.W - 40;
+          this.drawBackground(true);
+          this.updateHud();
         });
       }
 
-      drawArena(clear=false){
+      drawBackground(clear=false){
         if (clear) this.bg.clear();
         const g = this.bg;
-        g.fillStyle(0x0f0b16, 1);
-        g.fillRoundedRect(this.arena.x, this.arena.y, this.arena.w, this.arena.h, 18);
 
-        // neon border
-        g.lineStyle(2, 0x8a4dff, 0.22);
-        g.strokeRoundedRect(this.arena.x, this.arena.y, this.arena.w, this.arena.h, 18);
-
-        // faint inner grid lines
-        g.lineStyle(1, 0xff66f5, 0.06);
-        for (let i=1;i<5;i++){
-          const x = this.arena.x + (this.arena.w/5)*i;
-          const y = this.arena.y + (this.arena.h/5)*i;
-          g.lineBetween(x, this.arena.y+10, x, this.arena.y+this.arena.h-10);
-          g.lineBetween(this.arena.x+10, y, this.arena.x+this.arena.w-10, y);
-        }
-
-        // ultimate button hint ring (bottom-right)
-        g.fillStyle(0xff66f5, 0.06);
-        g.fillCircle(this.W - 74, this.H - 74, 56);
-        g.lineStyle(2, 0xff66f5, 0.16);
-        g.strokeCircle(this.W - 74, this.H - 74, 56);
-      }
-
-      drawVignette(clear=false){
-        if (clear) this.vignette.clear();
-        const g = this.vignette;
-        g.fillStyle(0x000000, 0.18);
+        // sky
+        g.fillStyle(0x77d9ff, 1);
         g.fillRect(0,0,this.W,this.H);
-        // punch hole for arena (fake vignette)
-        g.clear();
-        // actually create edge shadow by drawing rects
-        const pad = 0;
-        const thickness = 26;
-        g.fillStyle(0x000000, 0.22);
-        g.fillRect(pad, pad, this.W, thickness);
-        g.fillRect(pad, this.H-thickness, this.W, thickness);
-        g.fillRect(pad, pad, thickness, this.H);
-        g.fillRect(this.W-thickness, pad, thickness, this.H);
+
+        // mountains (2D shapes)
+        g.fillStyle(0x4bbbe6, 0.55);
+        g.fillTriangle(40, this.H*0.65, this.W*0.35, this.H*0.18, this.W*0.62, this.H*0.65);
+        g.fillTriangle(this.W*0.25, this.H*0.72, this.W*0.55, this.H*0.28, this.W*0.9, this.H*0.72);
+
+        // ground
+        g.fillStyle(0x70d65f, 1);
+        g.fillRect(0, this.groundY+40, this.W, this.H-(this.groundY+40));
+
+        // ground line
+        g.lineStyle(3, 0x2a2f3a, 0.20);
+        g.lineBetween(0, this.groundY+40, this.W, this.groundY+40);
+
+        // ult hint ring
+        g.fillStyle(0xffb100, 0.08);
+        g.fillCircle(this.W - 70, this.H - 110, 52);
+        g.lineStyle(3, 0xffb100, 0.18);
+        g.strokeCircle(this.W - 70, this.H - 110, 52);
       }
 
-      clampToArena(obj){
-        obj.x = clamp(obj.x, this.arena.x + 16, this.arena.x + this.arena.w - 16);
-        obj.y = clamp(obj.y, this.arena.y + 16, this.arena.y + this.arena.h - 16);
+      setCannonX(x){
+        this.cannon.x = clamp(x, this.cannonMinX, this.cannonMaxX);
       }
 
-      waveIntro(){
-        // wave scaling
-        this.waveAliveTarget = 6 + Math.floor(this.wave * 2.2);
-        this.waveSpawned = 0;
-        this.spawnTimer = 0;
-
-        // small banner
-        const t = this.add.text(this.W/2, 36, `WAVE ${this.wave}`, {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'20px',
-          color:'#ffffff'
-        }).setOrigin(0.5).setAlpha(0);
-        this.tweens.add({
-          targets:t, alpha:0.95, y: 30, duration:140, yoyo:true, hold:450,
-          onComplete:()=>t.destroy()
-        });
-      }
-
-      spawnEnemy(){
-        // spawn at arena edge
-        const side = Phaser.Math.Between(0,3);
-        let x, y;
-        const m = 12;
-        if (side === 0){ x = Phaser.Math.Between(this.arena.x+m, this.arena.x+this.arena.w-m); y = this.arena.y+m; }
-        if (side === 1){ x = Phaser.Math.Between(this.arena.x+m, this.arena.x+this.arena.w-m); y = this.arena.y+this.arena.h-m; }
-        if (side === 2){ x = this.arena.x+m; y = Phaser.Math.Between(this.arena.y+m, this.arena.y+this.arena.h-m); }
-        if (side === 3){ x = this.arena.x+this.arena.w-m; y = Phaser.Math.Between(this.arena.y+m, this.arena.y+this.arena.h-m); }
-
-        const e = this.add.circle(x, y, 12, 0xff4d6d, 1);
-        e.setStrokeStyle(2, 0xffb3c0, 0.22);
-
-        // scale enemy stats per wave
-        e.hpMax = 30 + this.wave * 8;
-        e.hp = e.hpMax;
-        e.spd = 56 + this.wave * 2.5 + Phaser.Math.Between(0,16);
-        e.dmg = 8 + Math.floor(this.wave*0.7);
-
-        // rare tank
-        if (Phaser.Math.FloatBetween(0,1) < 0.10){
-          e.setScale(1.25);
-          e.fillColor = 0xff3aa8;
-          e.hpMax *= 1.7;
-          e.hp = e.hpMax;
-          e.spd *= 0.78;
-          e.dmg *= 1.25;
-        }
-
-        this.enemies.add(e);
-      }
-
-      findNearestEnemy(){
-        let best = null;
-        let bestD = Infinity;
-        const px = this.player.x, py = this.player.y;
-        this.enemies.getChildren().forEach(e=>{
-          if (!e.active) return;
-          const d = dist(px,py,e.x,e.y);
-          if (d < bestD){
-            bestD = d;
-            best = e;
-          }
-        });
-        return { e: best, d: bestD };
-      }
-
-      shootAt(target){
-        const px = this.player.x, py = this.player.y;
-        const ang = Phaser.Math.Angle.Between(px,py,target.x,target.y);
-
-        const b = this.add.circle(px, py, 4, 0xff66f5, 1);
-        b.vx = Math.cos(ang) * this.bulletSpeed;
-        b.vy = Math.sin(ang) * this.bulletSpeed;
-        b.life = 1.0; // sec
-        b.dmg = this.damage;
-        this.bullets.add(b);
-
-        // muzzle glow
-        const m = this.add.circle(px + Math.cos(ang)*10, py + Math.sin(ang)*10, 12, 0x9b5cff, 0.14);
-        this.tweens.add({ targets:m, alpha:0, scale:1.35, duration:120, onComplete:()=>m.destroy() });
-      }
-
-      pop(x,y, col=0xff66f5){
-        const p = this.add.circle(x,y, 10, col, 0.18);
-        p.setStrokeStyle(2, col, 0.25);
-        this.tweens.add({ targets:p, alpha:0, scale:1.8, duration:180, onComplete:()=>p.destroy() });
-      }
-
-      floatText(x,y, text){
-        const t = this.add.text(x,y, text, {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'13px',
-          color:'#ffffff'
-        }).setOrigin(0.5).setAlpha(0.92);
-        this.tweens.add({
-          targets:t, y: y-26, alpha:0, duration:520,
-          onComplete:()=>t.destroy()
-        });
-      }
-
-      tryUltimate(){
-        if (!this.ultReady || this.upgradeOpen) return;
-
-        this.ultReady = false;
-        this.ultCharge = 0;
-        this.ultCooldown = 8; // purely cosmetic timer text, recharge is via kills
-
-        // NOVA: big ring + damage all nearby
-        const px=this.player.x, py=this.player.y;
-        const ring = this.add.circle(px,py, 18, 0xff66f5, 0.16);
-        ring.setStrokeStyle(3, 0xff66f5, 0.35);
-
-        this.tweens.add({
-          targets:ring, scale: 12, alpha: 0, duration: 520,
-          onUpdate:()=>{
-            // nothing
-          },
-          onComplete:()=>ring.destroy()
-        });
-
-        const radius = 260;
-        let hits = 0;
-        this.enemies.getChildren().forEach(e=>{
-          if (!e.active) return;
-          const d = dist(px,py,e.x,e.y);
-          if (d <= radius){
-            e.hp -= (45 + this.wave*2);
-            hits++;
-            this.pop(e.x,e.y, 0xff66f5);
-            if (e.hp <= 0){
-              this.killEnemy(e);
-            }
-          }
-        });
-
-        this.cameras.main.shake(120, 0.006);
-        if (navigator.vibrate) navigator.vibrate([20,30,20]);
-        this.floatText(px, py-34, hits ? `ULT: ${hits} hits` : `ULT: miss`);
-      }
-
-      killEnemy(e){
-        if (!e.active) return;
-        e.destroy();
-
-        this.kills++;
-        this.xp += 8 + this.wave;
-
-        // ult charge from kills
-        this.ultCharge = clamp(this.ultCharge + 0.08, 0, 1);
-        if (this.ultCharge >= 1) this.ultReady = true;
-
-        this.pop(e.x,e.y, 0xff4d6d);
-        if (Phaser.Math.FloatBetween(0,1) < 0.22) this.floatText(e.x, e.y-18, "+XP");
-
-        // level up every ~60 xp
-        const need = 60 + (this.level-1)*18;
-        if (this.xp >= need){
-          this.xp -= need;
-          this.level++;
-          this.openUpgrade();
-        }
-      }
-
-      openUpgrade(){
-        if (this.upgradeOpen) return;
-        this.upgradeOpen = true;
-
-        // pause spawn a bit
-        const overlay = this.add.rectangle(0,0,this.W,this.H, 0x000000, 0.45).setOrigin(0);
-        const card = this.add.graphics();
-        const cw = Math.min(this.W - 40, 420);
-        const ch = 250;
-        const cx = this.W/2 - cw/2;
-        const cy = this.H/2 - ch/2;
-
-        card.fillStyle(0x141024, 0.85);
-        card.fillRoundedRect(cx, cy, cw, ch, 18);
-        card.lineStyle(2, 0x8a4dff, 0.22);
-        card.strokeRoundedRect(cx, cy, cw, ch, 18);
-
-        const title = this.add.text(this.W/2, cy+22, "CHOOSE UPGRADE", {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'16px',
-          color:'#ffffff'
-        }).setOrigin(0.5).setAlpha(0.95);
-
-        // 3 upgrades
-        const upgrades = this.buildUpgrades();
-        const btns = [];
-        for (let i=0;i<3;i++){
-          const u = upgrades[i];
-          const by = cy + 60 + i*58;
-          const bx = cx + 16;
-          const bw = cw - 32;
-          const bh = 46;
-
-          const r = this.add.rectangle(bx, by, bw, bh, 0x000000, 0.01).setOrigin(0);
-          r.setStrokeStyle(1, 0xff66f5, 0.16);
-
-          const name = this.add.text(bx+14, by+12, u.name, {
-            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-            fontSize:'14px',
-            color:'#ffffff'
-          }).setAlpha(0.95);
-
-          const desc = this.add.text(bx+14, by+28, u.desc, {
-            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-            fontSize:'12px',
-            color:'#d9d1ff'
-          }).setAlpha(0.72);
-
-          r.setInteractive({ useHandCursor:false })
-            .on('pointerdown', ()=>{
-              // apply
-              u.apply();
-              this.pop(this.player.x, this.player.y, 0x8a4dff);
-              // close
-              overlay.destroy(); card.destroy(); title.destroy();
-              btns.forEach(o=>o.destroy());
-              name.destroy(); desc.destroy(); // might have been destroyed in btns, keep safe?
-              this.upgradeOpen = false;
-            });
-
-          btns.push(r, name, desc);
-        }
-
-        this.upgradeUI = { overlay, card, title, btns };
-      }
-
-      buildUpgrades(){
-        // weighted-ish, but simple
-        const list = [
-          {
-            name: "+DMG",
-            desc: `Damage +20%`,
-            apply: ()=> { this.damage = Math.round(this.damage * 1.2); }
-          },
-          {
-            name: "+FIRE RATE",
-            desc: `Fire rate +25%`,
-            apply: ()=> { this.fireRate = Math.min(18, this.fireRate * 1.25); }
-          },
-          {
-            name: "+HP MAX",
-            desc: `Max HP +25 (heal +25)`,
-            apply: ()=> { this.hpMax += 25; this.hp = Math.min(this.hpMax, this.hp + 25); }
-          },
-          {
-            name: "+MOVE",
-            desc: `Move speed +18%`,
-            apply: ()=> { this._moveMul = (this._moveMul || 1) * 1.18; }
-          },
-          {
-            name: "PIERCING",
-            desc: `Bullets live longer (+35%)`,
-            apply: ()=> { this._bulletLifeMul = (this._bulletLifeMul || 1) * 1.35; }
-          },
-          {
-            name: "ULT CHARGE",
-            desc: `Ult charges faster (+40%)`,
-            apply: ()=> { this._ultMul = (this._ultMul || 1) * 1.4; }
-          },
-        ];
-
-        // pick 3 random unique
-        Phaser.Utils.Array.Shuffle(list);
-        return list.slice(0,3);
+      isInUltZone(x,y){
+        // bottom-right area
+        const cx = this.W - 70, cy = this.H - 110;
+        return Math.hypot(x-cx, y-cy) <= 60;
       }
 
       updateHud(){
-        const ultPct = Math.round(this.ultCharge * 100);
+        const ultPct = Math.round(this.ultCharge*100);
         const ultText = this.ultReady ? `${this.ultName}: READY` : `${this.ultName}: ${ultPct}%`;
         this.hudEl.textContent =
-          `HP: ${this.hp}/${this.hpMax}  |  LVL: ${this.level}  |  WAVE: ${this.wave}\n` +
-          `Kills: ${this.kills}  |  ${ultText}`;
+          `LEVEL: ${this.level}  STAGE: ${this.stage}\n` +
+          `SCORE: ${this.score}  BEST: ${this.best}\n` +
+          `COINS: ${this.coins}\n` +
+          `HP: ${this.hp}/${this.hpMax}  DMG:${this.dmg}  FR:${this.fireRate.toFixed(0)}\n` +
+          `${ultText}`;
       }
 
-      gameOver(){
-        // reset
-        const t = this.add.text(this.W/2, this.H/2 - 10, "GAME OVER", {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'28px',
-          color:'#ffffff'
-        }).setOrigin(0.5).setAlpha(0);
+      spawnLevel(lvl){
+        this.waveSpawned = true;
 
-        const s = this.add.text(this.W/2, this.H/2 + 26, "Tap to restart", {
+        // clear old stuff (if any left)
+        this.balls.getChildren().forEach(b=>b.destroy());
+        this.coinsDrops.getChildren().forEach(c=>c.destroy());
+
+        // spawn count and hp scaling
+        const count = clamp(3 + Math.floor(lvl*0.35), 3, 10);
+        const baseHP = 6 + Math.floor(lvl*1.2);
+
+        for (let i=0;i<count;i++){
+          const r = Phaser.Math.Between(22, 44);
+          const x = Phaser.Math.Between(r+12, this.W - r - 12);
+          const y = Phaser.Math.Between(120, 260);
+
+          const b = this.add.circle(x, y, r, 0x2ecc71, 1);
+          b.setStrokeStyle(4, 0xffffff, 0.25);
+
+          // each ball has hp (number)
+          b.hp = baseHP + Phaser.Math.Between(-4, 8);
+          b.r = r;
+
+          // simple physics (manual)
+          b.vx = Phaser.Math.Between(-90, 90);
+          b.vy = Phaser.Math.Between(-40, 40);
+
+          // text label
+          b.lbl = this.add.text(x, y, String(b.hp), {
+            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+            fontSize: `${Math.round(r*0.8)}px`,
+            color:'#ffffff',
+            fontStyle:'900'
+          }).setOrigin(0.5);
+
+          this.balls.add(b);
+        }
+      }
+
+      shoot(time){
+        const interval = 1000 / this.fireRate;
+        if (time - this.lastShot < interval) return;
+        this.lastShot = time;
+
+        const b = this.add.circle(this.cannon.x, this.cannon.y - 52, 4, 0xffffff, 1);
+        b.vy = -this.bulletSpeed;
+        b.life = 1.4;
+        this.bullets.add(b);
+
+        // muzzle flash
+        const f = this.add.circle(this.cannon.x, this.cannon.y - 60, 12, 0xffb100, 0.22);
+        this.tweens.add({ targets:f, alpha:0, scale:1.4, duration:120, onComplete:()=>f.destroy() });
+      }
+
+      pop(x,y, color=0xffffff){
+        const p = this.add.circle(x,y, 10, color, 0.18);
+        p.setStrokeStyle(3, color, 0.22);
+        this.tweens.add({ targets:p, alpha:0, scale:1.9, duration:180, onComplete:()=>p.destroy() });
+      }
+
+      dropCoins(x,y, amount){
+        const n = clamp(Math.floor(amount/2), 1, 6);
+        for (let i=0;i<n;i++){
+          const c = this.add.circle(x, y, 7, 0xffd33d, 1);
+          c.setStrokeStyle(2, 0xffffff, 0.25);
+          c.vx = Phaser.Math.Between(-120,120);
+          c.vy = Phaser.Math.Between(-280,-160);
+          c.g = 720;
+          c.life = 2.2;
+          this.coinsDrops.add(c);
+        }
+      }
+
+      tryUlt(){
+        if (!this.ultReady || this.isPausedOverlay) return;
+
+        this.ultReady = false;
+        this.ultCharge = 0;
+
+        // RAIN: 1 сек шквала пуль
+        const dur = 1000;
+        const shots = 34;
+        const step = dur / shots;
+
+        // эффект
+        this.pop(this.cannon.x, this.cannon.y-60, 0xffb100);
+        this.cameras.main.shake(90, 0.0045);
+        if (navigator.vibrate) navigator.vibrate([20,25,20]);
+
+        for (let i=0;i<shots;i++){
+          this.time.delayedCall(i*step, ()=>{
+            if (!this.scene.isActive()) return;
+            const b = this.add.circle(this.cannon.x + Phaser.Math.Between(-10,10), this.cannon.y - 52, 4, 0xffb100, 1);
+            b.vy = -this.bulletSpeed * 1.05;
+            b.life = 1.2;
+            b.ult = true;
+            this.bullets.add(b);
+          });
+        }
+      }
+
+      openUpgradeAndChest(){
+        this.isPausedOverlay = true;
+        this.dragging = false;
+
+        const overlay = this.add.rectangle(0,0,this.W,this.H, 0x000000, 0.35).setOrigin(0);
+
+        const cw = Math.min(420, this.W - 40);
+        const ch = 320;
+        const cx = this.W/2 - cw/2;
+        const cy = this.H/2 - ch/2;
+
+        const card = this.add.graphics();
+        card.fillStyle(0x0b2a55, 0.85);
+        card.fillRoundedRect(cx,cy,cw,ch,18);
+        card.lineStyle(3, 0xffffff, 0.16);
+        card.strokeRoundedRect(cx,cy,cw,ch,18);
+
+        const title = this.add.text(this.W/2, cy+22, `LEVEL ${this.level} CLEAR`, {
+          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+          fontSize:'18px',
+          color:'#ffffff'
+        }).setOrigin(0.5);
+
+        // сундук (рандом награда)
+        const chest = this.add.rectangle(this.W/2, cy+78, cw-40, 58, 0xffb100, 0.9)
+          .setOrigin(0.5).setStrokeStyle(3, 0xffffff, 0.25);
+
+        const chestText = this.add.text(this.W/2, cy+78, `CHEST: TAP TO OPEN`, {
           fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
           fontSize:'14px',
-          color:'#d9d1ff'
-        }).setOrigin(0.5).setAlpha(0);
+          color:'#3b2b00'
+        }).setOrigin(0.5);
 
-        this.tweens.add({ targets:[t,s], alpha:0.95, duration:180 });
+        let chestOpened = false;
+        chest.setInteractive().on('pointerdown', ()=>{
+          if (chestOpened) return;
+          chestOpened = true;
 
-        this.input.once('pointerdown', ()=>{
-          location.reload();
+          // reward types
+          const roll = Phaser.Math.Between(1, 100);
+          let msg = "";
+          if (roll <= 55){
+            const add = Phaser.Math.Between(20, 60);
+            this.coins += add;
+            msg = `+${add} COINS`;
+          } else if (roll <= 80){
+            this.dmg += 1;
+            msg = `DMG +1`;
+          } else {
+            this.fireRate = Math.min(24, this.fireRate + 2);
+            msg = `FIRE RATE +2`;
+          }
+          chestText.setText(`CHEST OPENED: ${msg}`);
+          this.pop(this.W/2, cy+78, 0xffffff);
+          this.updateHud();
         });
+
+        const sub = this.add.text(this.W/2, cy+128, "CHOOSE UPGRADE", {
+          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+          fontSize:'14px',
+          color:'#ffffff'
+        }).setOrigin(0.5).setAlpha(0.9);
+
+        const options = [
+          { name:"+DMG", desc:"Damage +1", apply: ()=> this.dmg += 1 },
+          { name:"+FIRE", desc:"FireRate +15%", apply: ()=> this.fireRate = Math.min(26, this.fireRate * 1.15) },
+          { name:"+HP", desc:"MaxHP +1 (heal)", apply: ()=> { this.hpMax += 1; this.hp = this.hpMax; } },
+        ];
+        Phaser.Utils.Array.Shuffle(options);
+
+        const btns = [];
+        for (let i=0;i<3;i++){
+          const o = options[i];
+          const by = cy + 160 + i*52;
+          const r = this.add.rectangle(this.W/2, by, cw-40, 44, 0x00c2ff, 0.25)
+            .setOrigin(0.5).setStrokeStyle(2, 0xffffff, 0.16);
+
+          const t1 = this.add.text(this.W/2 - (cw-40)/2 + 16, by-10, o.name, {
+            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+            fontSize:'14px',
+            color:'#ffffff'
+          }).setOrigin(0,0.5);
+
+          const t2 = this.add.text(this.W/2 - (cw-40)/2 + 16, by+10, o.desc, {
+            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+            fontSize:'12px',
+            color:'#d7f3ff'
+          }).setOrigin(0,0.5).setAlpha(0.85);
+
+          r.setInteractive().on('pointerdown', ()=>{
+            o.apply();
+            this.updateHud();
+
+            // close overlay + next level
+            [overlay, card, title, chest, chestText, sub, ...btns].forEach(x=>x.destroy());
+            this.isPausedOverlay = false;
+
+            // next level
+            this.level++;
+            if (this.level % 10 === 1 && this.level > 1) this.stage++;
+
+            this.spawnLevel(this.level);
+          });
+
+          btns.push(r,t1,t2);
+        }
       }
 
       update(time, dt){
-        const delta = dt / 1000;
-        if (!this.player) return;
-
-        // if upgrade open, we still animate particles etc but pause gameplay
-        const paused = this.upgradeOpen;
-
-        // movement
-        const baseMove = 210;
-        const moveMul = this._moveMul || 1;
-        if (!paused){
-          this.player.x += this.joyVec.x * baseMove * moveMul * delta;
-          this.player.y += this.joyVec.y * baseMove * moveMul * delta;
-          this.clampToArena(this.player);
-        }
-
-        // spawn enemies for wave
-        if (!paused){
-          this.spawnTimer -= delta;
-          if (this.waveSpawned < this.waveAliveTarget){
-            if (this.spawnTimer <= 0){
-              this.spawnEnemy();
-              this.waveSpawned++;
-              this.spawnTimer = Math.max(0.08, 0.42 - this.wave*0.015);
-            }
-          }
-        }
-
-        // enemy AI + contact damage
-        if (!paused){
-          const px=this.player.x, py=this.player.y;
-          this.enemies.getChildren().forEach(e=>{
-            if (!e.active) return;
-            const ang = Phaser.Math.Angle.Between(e.x,e.y,px,py);
-            e.x += Math.cos(ang) * e.spd * delta;
-            e.y += Math.sin(ang) * e.spd * delta;
-
-            // touch damage with invuln
-            const d = dist(e.x,e.y,px,py);
-            if (d < (22 * (e.scaleX||1)) && this.player.inv <= 0){
-              this.hp -= e.dmg;
-              this.player.inv = 0.7;
-              this.cameras.main.shake(90, 0.0045);
-              if (navigator.vibrate) navigator.vibrate(25);
-              this.pop(px,py, 0xff4d6d);
-              if (this.hp <= 0){
-                this.updateHud();
-                this.gameOver();
-              }
-            }
-          });
-          this.player.inv -= delta;
-        }
+        const delta = dt/1000;
+        if (this.isPausedOverlay) return;
 
         // auto shooting
-        if (!paused && this.hp > 0){
-          const { e, d } = this.findNearestEnemy();
-          if (e && d <= this.range){
-            const interval = 1000 / this.fireRate;
-            if (time - this.lastShot >= interval){
-              this.lastShot = time;
-              this.shootAt(e);
+        this.shoot(time);
+
+        // bullets
+        this.bullets.getChildren().forEach(b=>{
+          if (!b.active) return;
+          b.y += (b.vy * delta);
+          b.life -= delta;
+          if (b.life <= 0 || b.y < -40){
+            b.destroy();
+          }
+        });
+
+        // balls movement + bounce + ground damage
+        this.balls.getChildren().forEach(ball=>{
+          if (!ball.active) return;
+
+          ball.x += ball.vx * delta;
+          ball.y += ball.vy * delta;
+
+          // walls
+          if (ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -1; }
+          if (ball.x + ball.r > this.W){ ball.x = this.W - ball.r; ball.vx *= -1; }
+
+          // ceiling
+          if (ball.y - ball.r < 80){ ball.y = 80 + ball.r; ball.vy *= -1; }
+
+          // gravity feel (2D)
+          ball.vy += 260 * delta;
+
+          // ground hit => player damage
+          if (ball.y + ball.r >= this.groundY + 34){
+            ball.y = this.groundY + 34 - ball.r;
+            ball.vy *= -0.78;
+
+            // удар по игроку (простая механика)
+            this.hp -= 1;
+            this.cameras.main.shake(60, 0.0035);
+            if (navigator.vibrate) navigator.vibrate(18);
+            this.pop(ball.x, ball.y+ball.r, 0xff4d4d);
+
+            if (this.hp <= 0){
+              // game over overlay
+              this.isPausedOverlay = true;
+              const ov = this.add.rectangle(0,0,this.W,this.H,0x000000,0.4).setOrigin(0);
+              const t = this.add.text(this.W/2, this.H/2-12, "GAME OVER", {
+                fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+                fontSize:'28px', color:'#ffffff'
+              }).setOrigin(0.5);
+              const s = this.add.text(this.W/2, this.H/2+26, "Tap to restart", {
+                fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+                fontSize:'14px', color:'#d7f3ff'
+              }).setOrigin(0.5).setAlpha(0.9);
+
+              this.best = Math.max(this.best, this.score);
+              localStorage.setItem("bb_best", String(this.best));
+              this.updateHud();
+
+              this.input.once('pointerdown', ()=> location.reload());
             }
           }
-        }
 
-        // bullets update + hit
-        const lifeMul = this._bulletLifeMul || 1;
-        if (!paused){
-          this.bullets.getChildren().forEach(b=>{
-            if (!b.active) return;
-            b.x += b.vx * delta;
-            b.y += b.vy * delta;
-            b.life -= delta;
+          // sync label
+          ball.lbl.x = ball.x;
+          ball.lbl.y = ball.y;
+          ball.lbl.setText(String(ball.hp));
+        });
 
-            // out of arena or dead
-            if (b.life <= 0 ||
-                b.x < this.arena.x-40 || b.x > this.arena.x+this.arena.w+40 ||
-                b.y < this.arena.y-40 || b.y > this.arena.y+this.arena.h+40){
-              b.destroy();
-              return;
-            }
+        // bullet vs ball collision
+        this.bullets.getChildren().forEach(b=>{
+          if (!b.active) return;
+          let hit = null;
 
-            // hit check (simple)
-            let hit = null;
-            this.enemies.getChildren().forEach(e=>{
-              if (hit || !e.active) return;
-              const d = dist(b.x,b.y,e.x,e.y);
-              if (d < 14*(e.scaleX||1)){
-                hit = e;
-              }
-            });
-
-            if (hit){
-              hit.hp -= b.dmg;
-              this.pop(hit.x, hit.y, 0xff66f5);
-              // pierce: bullets live longer if upgrade; else die
-              if (lifeMul <= 1.01){
-                b.destroy();
-              } else {
-                b.life = Math.min(b.life, 0.22 * lifeMul);
-              }
-
-              if (hit.hp <= 0){
-                this.killEnemy(hit);
-              }
-            }
+          this.balls.getChildren().forEach(ball=>{
+            if (hit || !ball.active) return;
+            const d = Math.hypot(b.x - ball.x, b.y - ball.y);
+            if (d <= ball.r + 6) hit = ball;
           });
-        }
 
-        // ult cooldown cosmetic
-        if (this.ultCooldown > 0) this.ultCooldown = Math.max(0, this.ultCooldown - delta);
+          if (hit){
+            const dmg = this.dmg + (b.ult ? 1 : 0);
+            hit.hp -= dmg;
+            this.score += dmg;
 
-        // faster ult charging upgrade
-        const ultMul = this._ultMul || 1;
-        if (!this.ultReady && ultMul > 1 && !paused){
-          // tiny passive charge to feel smoother
-          this.ultCharge = clamp(this.ultCharge + 0.004 * (ultMul-1) * delta * 60, 0, 1);
-          if (this.ultCharge >= 1) this.ultReady = true;
-        }
+            this.pop(b.x, b.y, b.ult ? 0xffb100 : 0xffffff);
 
-        // check wave clear
-        if (!paused){
-          const alive = this.enemies.getChildren().filter(e=>e.active).length;
-          if (this.waveSpawned >= this.waveAliveTarget && alive === 0){
-            this.wave++;
-            // small heal between waves
-            this.hp = Math.min(this.hpMax, this.hp + 10);
-            this.waveIntro();
+            // bullets vanish
+            b.destroy();
+
+            if (hit.hp <= 0){
+              // reward
+              this.coins += 5 + Math.floor(this.level/2);
+              this.ultCharge = clamp(this.ultCharge + 0.10, 0, 1);
+              if (this.ultCharge >= 1) this.ultReady = true;
+
+              this.dropCoins(hit.x, hit.y, 10 + this.level);
+              hit.lbl.destroy();
+              hit.destroy();
+            }
           }
+        });
+
+        // coin drops update (collect if near cannon)
+        this.coinsDrops.getChildren().forEach(c=>{
+          if (!c.active) return;
+          c.x += c.vx * delta;
+          c.y += c.vy * delta;
+          c.vy += c.g * delta;
+          c.life -= delta;
+
+          // bounce on ground
+          const gy = this.groundY + 34;
+          if (c.y >= gy){
+            c.y = gy;
+            c.vy *= -0.45;
+            c.vx *= 0.85;
+            if (Math.abs(c.vy) < 40) c.vy = 0;
+          }
+
+          // collect
+          if (Math.hypot(c.x - this.cannon.x, c.y - (this.cannon.y+22)) < 44){
+            this.coins += 1;
+            c.destroy();
+          }
+
+          if (c.life <= 0) c.destroy();
+        });
+
+        // level clear -> upgrade & chest
+        const alive = this.balls.getChildren().filter(x=>x.active).length;
+        if (this.waveSpawned && alive === 0 && this.hp > 0){
+          this.waveSpawned = false;
+          this.best = Math.max(this.best, this.score);
+          localStorage.setItem("bb_best", String(this.best));
+          this.openUpgradeAndChest();
         }
 
         this.updateHud();
@@ -658,7 +540,7 @@
       parent: 'game',
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: '#07060a',
+      backgroundColor: '#77d9ff',
       scene: [GameScene],
       scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }
     };
