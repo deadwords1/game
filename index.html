@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <title>Phaser Roguelike</title>
+  <style>
+    html, body { margin:0; padding:0; background:#07060a; height:100%; overflow:hidden; touch-action:none; }
+    #game { width:100vw; height:100vh; }
+    .hint {
+      position: fixed; left: 12px; top: 12px; z-index: 10;
+      font: 600 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: rgba(255,255,255,.85);
+      background: rgba(20,16,28,.55);
+      border: 1px solid rgba(180,120,255,.25);
+      padding: 10px 12px; border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <div class="hint">Левый палец — движение • Правый тап — удар • Двери: подойти к краю</div>
+  <div id="game"></div>
+
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+
+  <script>
+    // ===== Простая RNG по seed (чтоб комнаты были стабильные)
+    function mulberry32(a){
+      return function(){
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      }
+    }
+    function keyXY(x,y){ return `${x},${y}`; }
+
+    class GameScene extends Phaser.Scene {
+      constructor(){ super('game'); }
+
+      create(){
+        // --- Мир/комнаты
+        this.roomX = 0; this.roomY = 0;
+        this.rooms = new Map(); // key -> { seed, cleared }
+        this.enterRoom(0,0, null);
+
+        // --- UI
+        this.txt = this.add.text(14, 58, '', {
+          fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+          fontSize: '14px',
+          color: '#ffffff'
+        }).setScrollFactor(0).setAlpha(0.9);
+
+        // --- Mobile controls
+        this.leftPointerId = null;
+        this.rightPointerId = null;
+        this.joyStart = null;
+        this.joyVec = new Phaser.Math.Vector2(0,0);
+
+        this.input.on('pointerdown', (p)=>{
+          const w = this.scale.width;
+          if (p.x < w * 0.55 && this.leftPointerId === null){
+            this.leftPointerId = p.id;
+            this.joyStart = new Phaser.Math.Vector2(p.x, p.y);
+            this.joyVec.set(0,0);
+          } else if (this.rightPointerId === null){
+            this.rightPointerId = p.id;
+            this.tryAttack();
+          }
+        });
+
+        this.input.on('pointermove', (p)=>{
+          if (p.id === this.leftPointerId && this.joyStart){
+            const dx = p.x - this.joyStart.x;
+            const dy = p.y - this.joyStart.y;
+            const v = new Phaser.Math.Vector2(dx, dy);
+            const len = v.length();
+            const max = 70;
+            if (len > max) v.scale(max / len);
+            this.joyVec = v.scale(1 / max); // -1..1
+          }
+        });
+
+        const endPointer = (p)=>{
+          if (p.id === this.leftPointerId){
+            this.leftPointerId = null;
+            this.joyStart = null;
+            this.joyVec.set(0,0);
+          }
+          if (p.id === this.rightPointerId){
+            this.rightPointerId = null;
+          }
+        };
+        this.input.on('pointerup', endPointer);
+        this.input.on('pointerout', endPointer);
+        this.input.on('pointercancel', endPointer);
+
+        // --- Камера мягко
+        this.cameras.main.setBackgroundColor('#07060a');
+      }
+
+      enterRoom(x,y, fromSide){
+        this.roomX = x; this.roomY = y;
+
+        // очистка старого
+        if (this.roomGroup) this.roomGroup.destroy(true);
+        this.roomGroup = this.add.group();
+
+        // данные комнаты
+        const k = keyXY(x,y);
+        if (!this.rooms.has(k)){
+          // seed от координат
+          const seed = (x * 73856093) ^ (y * 19349663) ^ 0x9E3779B9;
+          this.rooms.set(k, { seed, cleared:false });
+        }
+        const data = this.rooms.get(k);
+        const rand = mulberry32(data.seed);
+
+        // размеры “арены”
+        const W = this.scale.width;
+        const H = this.scale.height;
+        this.arena = { x: 24, y: 90, w: W - 48, h: H - 130 };
+
+        // фон/рамка
+        const g = this.add.graphics();
+        g.fillStyle(0x0f0b16, 1);
+        g.fillRoundedRect(this.arena.x, this.arena.y, this.arena.w, this.arena.h, 18);
+        g.lineStyle(2, 0x8a4dff, 0.25);
+        g.strokeRoundedRect(this.arena.x, this.arena.y, this.arena.w, this.arena.h, 18);
+        this.roomGroup.add(g);
+
+        // “двери” подсветка по краям
+        const door = (x,y,w,h)=> {
+          const d = this.add.rectangle(x,y,w,h, 0xff4df0, 0.14).setOrigin(0);
+          const o = this.add.rectangle(x,y,w,h).setOrigin(0);
+          o.setStrokeStyle(1, 0xff4df0, 0.25);
+          this.roomGroup.addMultiple([d,o]);
+        };
+        const dsz = 64;
+        door(this.arena.x + this.arena.w/2 - dsz/2, this.arena.y - 6, dsz, 12); // up
+        door(this.arena.x + this.arena.w/2 - dsz/2, this.arena.y + this.arena.h - 6, dsz, 12); // down
+        door(this.arena.x - 6, this.arena.y + this.arena.h/2 - dsz/2, 12, dsz); // left
+        door(this.arena.x + this.arena.w - 6, this.arena.y + this.arena.h/2 - dsz/2, 12, dsz); // right
+
+        // игрок
+        if (!this.player){
+          this.player = this.add.circle(0,0, 14, 0x9b5cff, 1);
+          this.player.setStrokeStyle(2, 0xff66f5, 0.35);
+          this.player.hp = 5;
+          this.player.inv = 0;
+        }
+
+        // позиция входа
+        const pad = 34;
+        let px = this.arena.x + this.arena.w/2;
+        let py = this.arena.y + this.arena.h/2;
+        if (fromSide === 'up') py = this.arena.y + pad;
+        if (fromSide === 'down') py = this.arena.y + this.arena.h - pad;
+        if (fromSide === 'left') px = this.arena.x + pad;
+        if (fromSide === 'right') px = this.arena.x + this.arena.w - pad;
+        this.player.x = px; this.player.y = py;
+
+        // враги (если не зачищено)
+        this.enemies = [];
+        if (!data.cleared){
+          const count = 2 + Math.floor(rand() * 4);
+          for (let i=0;i<count;i++){
+            const ex = this.arena.x + 40 + rand() * (this.arena.w - 80);
+            const ey = this.arena.y + 40 + rand() * (this.arena.h - 80);
+            const e = this.add.circle(ex, ey, 12, 0xff4d6d, 1);
+            e.setStrokeStyle(2, 0xffb3c0, 0.25);
+            e.hp = 2;
+            e.spd = 55 + rand()*35;
+            this.enemies.push(e);
+            this.roomGroup.add(e);
+          }
+        }
+
+        // FX текст комнаты
+        this.flash = this.add.text(this.scale.width/2, 28,
+          `ROOM ${x}, ${y}`, {
+            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+            fontSize:'18px',
+            color:'#ffffff'
+          }).setOrigin(0.5).setAlpha(0);
+        this.tweens.add({ targets:this.flash, alpha:0.95, duration:180, yoyo:true, hold:250, onComplete:()=>this.flash.destroy() });
+
+        this.roomGroup.add(this.player);
+      }
+
+      tryAttack(){
+        // простая атака: удар вокруг игрока
+        if (!this.player) return;
+
+        const now = this.time.now;
+        if (this._atkCd && now < this._atkCd) return;
+        this._atkCd = now + 260;
+
+        const ring = this.add.circle(this.player.x, this.player.y, 28, 0xff66f5, 0.18);
+        ring.setStrokeStyle(2, 0xff66f5, 0.35);
+        this.tweens.add({ targets:ring, alpha:0, scale:1.25, duration:180, onComplete:()=>ring.destroy() });
+
+        const hitR = 42;
+        for (const e of this.enemies){
+          if (!e.active) continue;
+          const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
+          if (d < hitR){
+            e.hp -= 1;
+            this.tweens.add({ targets:e, scale:1.12, duration:70, yoyo:true });
+            if (e.hp <= 0){
+              e.destroy();
+            }
+          }
+        }
+      }
+
+      clampToArena(obj){
+        obj.x = Phaser.Math.Clamp(obj.x, this.arena.x + 18, this.arena.x + this.arena.w - 18);
+        obj.y = Phaser.Math.Clamp(obj.y, this.arena.y + 18, this.arena.y + this.arena.h - 18);
+      }
+
+      update(time, dt){
+        if (!this.player) return;
+
+        const delta = dt / 1000;
+
+        // движение игрока (джой)
+        const spd = 170;
+        this.player.x += this.joyVec.x * spd * delta;
+        this.player.y += this.joyVec.y * spd * delta;
+        this.clampToArena(this.player);
+
+        // враги идут к игроку
+        let alive = 0;
+        for (const e of this.enemies){
+          if (!e.active) continue;
+          alive++;
+          const ang = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+          e.x += Math.cos(ang) * e.spd * delta;
+          e.y += Math.sin(ang) * e.spd * delta;
+
+          // урон если близко (с инвулном)
+          const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+          if (d < 24 && this.player.inv <= 0){
+            this.player.hp -= 1;
+            this.player.inv = 0.8;
+            this.cameras.main.shake(80, 0.004);
+            if (navigator.vibrate) navigator.vibrate(35);
+          }
+        }
+        this.player.inv -= delta;
+
+        // если зачищено — отмечаем комнату
+        const k = keyXY(this.roomX, this.roomY);
+        const data = this.rooms.get(k);
+        if (alive === 0) data.cleared = true;
+
+        // переходы в соседние комнаты (если подошёл к краю)
+        const edge = 20;
+        if (this.player.y <= this.arena.y + edge){
+          this.enterRoom(this.roomX, this.roomY - 1, 'down');
+          return;
+        }
+        if (this.player.y >= this.arena.y + this.arena.h - edge){
+          this.enterRoom(this.roomX, this.roomY + 1, 'up');
+          return;
+        }
+        if (this.player.x <= this.arena.x + edge){
+          this.enterRoom(this.roomX - 1, this.roomY, 'right');
+          return;
+        }
+        if (this.player.x >= this.arena.x + this.arena.w - edge){
+          this.enterRoom(this.roomX + 1, this.roomY, 'left');
+          return;
+        }
+
+        // UI текст
+        this.txt.setText(
+          `HP: ${this.player.hp}  |  Enemies: ${alive}\n` +
+          `Cleared: ${data.cleared ? 'yes' : 'no'}`
+        );
+
+        // game over
+        if (this.player.hp <= 0){
+          this.scene.restart();
+        }
+      }
+    }
+
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'game',
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: '#07060a',
+      scene: [GameScene],
+      scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }
+    };
+
+    const game = new Phaser.Game(config);
+
+    window.addEventListener('resize', () => {
+      game.scale.resize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+  </html>
