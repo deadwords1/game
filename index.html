@@ -1,552 +1,525 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <title>Ball Blast 2D</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <title>Ball Blast 2D (Canvas)</title>
   <style>
-    html, body { margin:0; padding:0; background:#77d9ff; height:100%; overflow:hidden; touch-action:none; }
-    #game { width:100vw; height:100vh; }
-    .hud {
-      position: fixed; left: 12px; top: 12px; z-index: 50;
-      font: 800 13px/1.25 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: rgba(255,255,255,.95);
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.25);
-      padding: 10px 12px; border-radius: 14px;
+    html,body{margin:0;height:100%;background:#7ad9ff;overflow:hidden;touch-action:none}
+    canvas{display:block;width:100vw;height:100vh}
+    .ui{
+      position:fixed;left:12px;top:12px;z-index:10;
+      font:800 13px/1.25 system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:rgba(255,255,255,.96);
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.22);
+      border-radius:14px;padding:10px 12px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.18);
-      pointer-events: none;
-      white-space: pre;
+      box-shadow:0 10px 30px rgba(0,0,0,.18);
+      white-space:pre;
+      pointer-events:none;
     }
-    .tip {
-      position: fixed; left: 12px; bottom: 12px; z-index: 50;
-      font: 700 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: rgba(255,255,255,.92);
-      background: rgba(0,0,0,.16);
-      border: 1px solid rgba(255,255,255,.22);
-      padding: 10px 12px; border-radius: 14px;
+    .hint{
+      position:fixed;left:12px;bottom:12px;z-index:10;
+      font:700 12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:rgba(255,255,255,.92);
+      background:rgba(0,0,0,.16);
+      border:1px solid rgba(255,255,255,.20);
+      border-radius:14px;padding:10px 12px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.16);
-      pointer-events: none;
+      box-shadow:0 10px 30px rgba(0,0,0,.16);
+      pointer-events:none;
     }
   </style>
 </head>
 <body>
-  <div class="hud" id="hud">Loading...</div>
-  <div class="tip">Тяни палец — двигай пушку • Стрельба авто • Ульта справа снизу</div>
-  <div id="game"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-
-  <script>
-    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-
-    class GameScene extends Phaser.Scene {
-      constructor(){ super('game'); }
-
-      create(){
-        this.W = this.scale.width;
-        this.H = this.scale.height;
-
-        // Ground line
-        this.groundY = this.H - 90;
-
-        // progression / economy
-        this.level = 1;
-        this.stage = 1;              // можно позже сделать "этапы" по 10 уровней
-        this.score = 0;
-        this.coins = 0;
-        this.best = Number(localStorage.getItem("bb_best")||0);
-
-        // player stats (upgrades)
-        this.hpMax = 3;
-        this.hp = this.hpMax;
-        this.dmg = 1;
-        this.fireRate = 12;          // bullets per second
-        this.bulletSpeed = 820;
-
-        // ultimate
-        this.ultCharge = 0;          // 0..1
-        this.ultReady = false;
-        this.ultName = "RAIN";
-
-        // gameplay
-        this.isPausedOverlay = false;
-        this.lastShot = 0;
-
-        // visuals: background (simple 2D)
-        this.bg = this.add.graphics();
-        this.drawBackground();
-
-        // groups
-        this.bullets = this.add.group();
-        this.balls = this.add.group();
-        this.coinsDrops = this.add.group();
-
-        // cannon (2D, без 3D)
-        this.cannon = this.add.container(this.W/2, this.groundY);
-        const base = this.add.rectangle(0, 18, 80, 34, 0x2a2f3a, 1).setStrokeStyle(2, 0xffffff, 0.22);
-        const wheelL = this.add.circle(-26, 26, 14, 0x1b1f28, 1).setStrokeStyle(2, 0xffffff, 0.18);
-        const wheelR = this.add.circle( 26, 26, 14, 0x1b1f28, 1).setStrokeStyle(2, 0xffffff, 0.18);
-        const barrel = this.add.rectangle(0, -6, 18, 52, 0xcfd6e4, 1).setStrokeStyle(2, 0x000000, 0.12);
-        this.cannon.add([base, wheelL, wheelR, barrel]);
-
-        // aim is always up; we move only X
-        this.cannonMinX = 40;
-        this.cannonMaxX = this.W - 40;
-
-        // mobile control: drag anywhere
-        this.dragging = false;
-        this.input.on('pointerdown', (p)=>{
-          if (this.isPausedOverlay) return;
-          this.dragging = true;
-          this.setCannonX(p.x);
-          // if tap in ult zone, try ult
-          if (this.isInUltZone(p.x, p.y)) this.tryUlt();
-        });
-        this.input.on('pointermove', (p)=>{
-          if (this.isPausedOverlay) return;
-          if (!this.dragging) return;
-          this.setCannonX(p.x);
-        });
-        this.input.on('pointerup', ()=>{ this.dragging = false; });
-        this.input.on('pointercancel', ()=>{ this.dragging = false; });
-
-        // HUD
-        this.hudEl = document.getElementById("hud");
-        this.updateHud();
-
-        // balls spawn
-        this.waveSpawned = false;
-        this.spawnLevel(this.level);
-
-        // resize
-        this.scale.on('resize', (gs)=>{
-          this.W = gs.width; this.H = gs.height;
-          this.groundY = this.H - 90;
-          this.cannon.y = this.groundY;
-          this.cannonMaxX = this.W - 40;
-          this.drawBackground(true);
-          this.updateHud();
-        });
-      }
-
-      drawBackground(clear=false){
-        if (clear) this.bg.clear();
-        const g = this.bg;
-
-        // sky
-        g.fillStyle(0x77d9ff, 1);
-        g.fillRect(0,0,this.W,this.H);
-
-        // mountains (2D shapes)
-        g.fillStyle(0x4bbbe6, 0.55);
-        g.fillTriangle(40, this.H*0.65, this.W*0.35, this.H*0.18, this.W*0.62, this.H*0.65);
-        g.fillTriangle(this.W*0.25, this.H*0.72, this.W*0.55, this.H*0.28, this.W*0.9, this.H*0.72);
-
-        // ground
-        g.fillStyle(0x70d65f, 1);
-        g.fillRect(0, this.groundY+40, this.W, this.H-(this.groundY+40));
-
-        // ground line
-        g.lineStyle(3, 0x2a2f3a, 0.20);
-        g.lineBetween(0, this.groundY+40, this.W, this.groundY+40);
-
-        // ult hint ring
-        g.fillStyle(0xffb100, 0.08);
-        g.fillCircle(this.W - 70, this.H - 110, 52);
-        g.lineStyle(3, 0xffb100, 0.18);
-        g.strokeCircle(this.W - 70, this.H - 110, 52);
-      }
-
-      setCannonX(x){
-        this.cannon.x = clamp(x, this.cannonMinX, this.cannonMaxX);
-      }
-
-      isInUltZone(x,y){
-        // bottom-right area
-        const cx = this.W - 70, cy = this.H - 110;
-        return Math.hypot(x-cx, y-cy) <= 60;
-      }
-
-      updateHud(){
-        const ultPct = Math.round(this.ultCharge*100);
-        const ultText = this.ultReady ? `${this.ultName}: READY` : `${this.ultName}: ${ultPct}%`;
-        this.hudEl.textContent =
-          `LEVEL: ${this.level}  STAGE: ${this.stage}\n` +
-          `SCORE: ${this.score}  BEST: ${this.best}\n` +
-          `COINS: ${this.coins}\n` +
-          `HP: ${this.hp}/${this.hpMax}  DMG:${this.dmg}  FR:${this.fireRate.toFixed(0)}\n` +
-          `${ultText}`;
-      }
-
-      spawnLevel(lvl){
-        this.waveSpawned = true;
-
-        // clear old stuff (if any left)
-        this.balls.getChildren().forEach(b=>b.destroy());
-        this.coinsDrops.getChildren().forEach(c=>c.destroy());
-
-        // spawn count and hp scaling
-        const count = clamp(3 + Math.floor(lvl*0.35), 3, 10);
-        const baseHP = 6 + Math.floor(lvl*1.2);
-
-        for (let i=0;i<count;i++){
-          const r = Phaser.Math.Between(22, 44);
-          const x = Phaser.Math.Between(r+12, this.W - r - 12);
-          const y = Phaser.Math.Between(120, 260);
-
-          const b = this.add.circle(x, y, r, 0x2ecc71, 1);
-          b.setStrokeStyle(4, 0xffffff, 0.25);
-
-          // each ball has hp (number)
-          b.hp = baseHP + Phaser.Math.Between(-4, 8);
-          b.r = r;
-
-          // simple physics (manual)
-          b.vx = Phaser.Math.Between(-90, 90);
-          b.vy = Phaser.Math.Between(-40, 40);
-
-          // text label
-          b.lbl = this.add.text(x, y, String(b.hp), {
-            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-            fontSize: `${Math.round(r*0.8)}px`,
-            color:'#ffffff',
-            fontStyle:'900'
-          }).setOrigin(0.5);
-
-          this.balls.add(b);
-        }
-      }
-
-      shoot(time){
-        const interval = 1000 / this.fireRate;
-        if (time - this.lastShot < interval) return;
-        this.lastShot = time;
-
-        const b = this.add.circle(this.cannon.x, this.cannon.y - 52, 4, 0xffffff, 1);
-        b.vy = -this.bulletSpeed;
-        b.life = 1.4;
-        this.bullets.add(b);
-
-        // muzzle flash
-        const f = this.add.circle(this.cannon.x, this.cannon.y - 60, 12, 0xffb100, 0.22);
-        this.tweens.add({ targets:f, alpha:0, scale:1.4, duration:120, onComplete:()=>f.destroy() });
-      }
-
-      pop(x,y, color=0xffffff){
-        const p = this.add.circle(x,y, 10, color, 0.18);
-        p.setStrokeStyle(3, color, 0.22);
-        this.tweens.add({ targets:p, alpha:0, scale:1.9, duration:180, onComplete:()=>p.destroy() });
-      }
-
-      dropCoins(x,y, amount){
-        const n = clamp(Math.floor(amount/2), 1, 6);
-        for (let i=0;i<n;i++){
-          const c = this.add.circle(x, y, 7, 0xffd33d, 1);
-          c.setStrokeStyle(2, 0xffffff, 0.25);
-          c.vx = Phaser.Math.Between(-120,120);
-          c.vy = Phaser.Math.Between(-280,-160);
-          c.g = 720;
-          c.life = 2.2;
-          this.coinsDrops.add(c);
-        }
-      }
-
-      tryUlt(){
-        if (!this.ultReady || this.isPausedOverlay) return;
-
-        this.ultReady = false;
-        this.ultCharge = 0;
-
-        // RAIN: 1 сек шквала пуль
-        const dur = 1000;
-        const shots = 34;
-        const step = dur / shots;
-
-        // эффект
-        this.pop(this.cannon.x, this.cannon.y-60, 0xffb100);
-        this.cameras.main.shake(90, 0.0045);
-        if (navigator.vibrate) navigator.vibrate([20,25,20]);
-
-        for (let i=0;i<shots;i++){
-          this.time.delayedCall(i*step, ()=>{
-            if (!this.scene.isActive()) return;
-            const b = this.add.circle(this.cannon.x + Phaser.Math.Between(-10,10), this.cannon.y - 52, 4, 0xffb100, 1);
-            b.vy = -this.bulletSpeed * 1.05;
-            b.life = 1.2;
-            b.ult = true;
-            this.bullets.add(b);
-          });
-        }
-      }
-
-      openUpgradeAndChest(){
-        this.isPausedOverlay = true;
-        this.dragging = false;
-
-        const overlay = this.add.rectangle(0,0,this.W,this.H, 0x000000, 0.35).setOrigin(0);
-
-        const cw = Math.min(420, this.W - 40);
-        const ch = 320;
-        const cx = this.W/2 - cw/2;
-        const cy = this.H/2 - ch/2;
-
-        const card = this.add.graphics();
-        card.fillStyle(0x0b2a55, 0.85);
-        card.fillRoundedRect(cx,cy,cw,ch,18);
-        card.lineStyle(3, 0xffffff, 0.16);
-        card.strokeRoundedRect(cx,cy,cw,ch,18);
-
-        const title = this.add.text(this.W/2, cy+22, `LEVEL ${this.level} CLEAR`, {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'18px',
-          color:'#ffffff'
-        }).setOrigin(0.5);
-
-        // сундук (рандом награда)
-        const chest = this.add.rectangle(this.W/2, cy+78, cw-40, 58, 0xffb100, 0.9)
-          .setOrigin(0.5).setStrokeStyle(3, 0xffffff, 0.25);
-
-        const chestText = this.add.text(this.W/2, cy+78, `CHEST: TAP TO OPEN`, {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'14px',
-          color:'#3b2b00'
-        }).setOrigin(0.5);
-
-        let chestOpened = false;
-        chest.setInteractive().on('pointerdown', ()=>{
-          if (chestOpened) return;
-          chestOpened = true;
-
-          // reward types
-          const roll = Phaser.Math.Between(1, 100);
-          let msg = "";
-          if (roll <= 55){
-            const add = Phaser.Math.Between(20, 60);
-            this.coins += add;
-            msg = `+${add} COINS`;
-          } else if (roll <= 80){
-            this.dmg += 1;
-            msg = `DMG +1`;
-          } else {
-            this.fireRate = Math.min(24, this.fireRate + 2);
-            msg = `FIRE RATE +2`;
-          }
-          chestText.setText(`CHEST OPENED: ${msg}`);
-          this.pop(this.W/2, cy+78, 0xffffff);
-          this.updateHud();
-        });
-
-        const sub = this.add.text(this.W/2, cy+128, "CHOOSE UPGRADE", {
-          fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-          fontSize:'14px',
-          color:'#ffffff'
-        }).setOrigin(0.5).setAlpha(0.9);
-
-        const options = [
-          { name:"+DMG", desc:"Damage +1", apply: ()=> this.dmg += 1 },
-          { name:"+FIRE", desc:"FireRate +15%", apply: ()=> this.fireRate = Math.min(26, this.fireRate * 1.15) },
-          { name:"+HP", desc:"MaxHP +1 (heal)", apply: ()=> { this.hpMax += 1; this.hp = this.hpMax; } },
-        ];
-        Phaser.Utils.Array.Shuffle(options);
-
-        const btns = [];
-        for (let i=0;i<3;i++){
-          const o = options[i];
-          const by = cy + 160 + i*52;
-          const r = this.add.rectangle(this.W/2, by, cw-40, 44, 0x00c2ff, 0.25)
-            .setOrigin(0.5).setStrokeStyle(2, 0xffffff, 0.16);
-
-          const t1 = this.add.text(this.W/2 - (cw-40)/2 + 16, by-10, o.name, {
-            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-            fontSize:'14px',
-            color:'#ffffff'
-          }).setOrigin(0,0.5);
-
-          const t2 = this.add.text(this.W/2 - (cw-40)/2 + 16, by+10, o.desc, {
-            fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-            fontSize:'12px',
-            color:'#d7f3ff'
-          }).setOrigin(0,0.5).setAlpha(0.85);
-
-          r.setInteractive().on('pointerdown', ()=>{
-            o.apply();
-            this.updateHud();
-
-            // close overlay + next level
-            [overlay, card, title, chest, chestText, sub, ...btns].forEach(x=>x.destroy());
-            this.isPausedOverlay = false;
-
-            // next level
-            this.level++;
-            if (this.level % 10 === 1 && this.level > 1) this.stage++;
-
-            this.spawnLevel(this.level);
-          });
-
-          btns.push(r,t1,t2);
-        }
-      }
-
-      update(time, dt){
-        const delta = dt/1000;
-        if (this.isPausedOverlay) return;
-
-        // auto shooting
-        this.shoot(time);
-
-        // bullets
-        this.bullets.getChildren().forEach(b=>{
-          if (!b.active) return;
-          b.y += (b.vy * delta);
-          b.life -= delta;
-          if (b.life <= 0 || b.y < -40){
-            b.destroy();
-          }
-        });
-
-        // balls movement + bounce + ground damage
-        this.balls.getChildren().forEach(ball=>{
-          if (!ball.active) return;
-
-          ball.x += ball.vx * delta;
-          ball.y += ball.vy * delta;
-
-          // walls
-          if (ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -1; }
-          if (ball.x + ball.r > this.W){ ball.x = this.W - ball.r; ball.vx *= -1; }
-
-          // ceiling
-          if (ball.y - ball.r < 80){ ball.y = 80 + ball.r; ball.vy *= -1; }
-
-          // gravity feel (2D)
-          ball.vy += 260 * delta;
-
-          // ground hit => player damage
-          if (ball.y + ball.r >= this.groundY + 34){
-            ball.y = this.groundY + 34 - ball.r;
-            ball.vy *= -0.78;
-
-            // удар по игроку (простая механика)
-            this.hp -= 1;
-            this.cameras.main.shake(60, 0.0035);
-            if (navigator.vibrate) navigator.vibrate(18);
-            this.pop(ball.x, ball.y+ball.r, 0xff4d4d);
-
-            if (this.hp <= 0){
-              // game over overlay
-              this.isPausedOverlay = true;
-              const ov = this.add.rectangle(0,0,this.W,this.H,0x000000,0.4).setOrigin(0);
-              const t = this.add.text(this.W/2, this.H/2-12, "GAME OVER", {
-                fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-                fontSize:'28px', color:'#ffffff'
-              }).setOrigin(0.5);
-              const s = this.add.text(this.W/2, this.H/2+26, "Tap to restart", {
-                fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial',
-                fontSize:'14px', color:'#d7f3ff'
-              }).setOrigin(0.5).setAlpha(0.9);
-
-              this.best = Math.max(this.best, this.score);
-              localStorage.setItem("bb_best", String(this.best));
-              this.updateHud();
-
-              this.input.once('pointerdown', ()=> location.reload());
-            }
-          }
-
-          // sync label
-          ball.lbl.x = ball.x;
-          ball.lbl.y = ball.y;
-          ball.lbl.setText(String(ball.hp));
-        });
-
-        // bullet vs ball collision
-        this.bullets.getChildren().forEach(b=>{
-          if (!b.active) return;
-          let hit = null;
-
-          this.balls.getChildren().forEach(ball=>{
-            if (hit || !ball.active) return;
-            const d = Math.hypot(b.x - ball.x, b.y - ball.y);
-            if (d <= ball.r + 6) hit = ball;
-          });
-
-          if (hit){
-            const dmg = this.dmg + (b.ult ? 1 : 0);
-            hit.hp -= dmg;
-            this.score += dmg;
-
-            this.pop(b.x, b.y, b.ult ? 0xffb100 : 0xffffff);
-
-            // bullets vanish
-            b.destroy();
-
-            if (hit.hp <= 0){
-              // reward
-              this.coins += 5 + Math.floor(this.level/2);
-              this.ultCharge = clamp(this.ultCharge + 0.10, 0, 1);
-              if (this.ultCharge >= 1) this.ultReady = true;
-
-              this.dropCoins(hit.x, hit.y, 10 + this.level);
-              hit.lbl.destroy();
-              hit.destroy();
-            }
-          }
-        });
-
-        // coin drops update (collect if near cannon)
-        this.coinsDrops.getChildren().forEach(c=>{
-          if (!c.active) return;
-          c.x += c.vx * delta;
-          c.y += c.vy * delta;
-          c.vy += c.g * delta;
-          c.life -= delta;
-
-          // bounce on ground
-          const gy = this.groundY + 34;
-          if (c.y >= gy){
-            c.y = gy;
-            c.vy *= -0.45;
-            c.vx *= 0.85;
-            if (Math.abs(c.vy) < 40) c.vy = 0;
-          }
-
-          // collect
-          if (Math.hypot(c.x - this.cannon.x, c.y - (this.cannon.y+22)) < 44){
-            this.coins += 1;
-            c.destroy();
-          }
-
-          if (c.life <= 0) c.destroy();
-        });
-
-        // level clear -> upgrade & chest
-        const alive = this.balls.getChildren().filter(x=>x.active).length;
-        if (this.waveSpawned && alive === 0 && this.hp > 0){
-          this.waveSpawned = false;
-          this.best = Math.max(this.best, this.score);
-          localStorage.setItem("bb_best", String(this.best));
-          this.openUpgradeAndChest();
-        }
-
-        this.updateHud();
-      }
+  <div class="ui" id="hud">Loading…</div>
+  <div class="hint">Тяни палец — двигай пушку • Стрельба авто</div>
+  <canvas id="c"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const hud = document.getElementById('hud');
+
+  // ---------- crisp scaling (no blur)
+  let DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  let W=0,H=0;
+
+  function resize(){
+    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = Math.floor(window.innerWidth);
+    H = Math.floor(window.innerHeight);
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W+'px';
+    canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+
+  const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
+  ctx.imageSmoothingEnabled = false;
+
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // ---------- helpers
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand=(a,b)=>a+Math.random()*(b-a);
+
+  // ---------- game state
+  const state = {
+    level: 1,
+    stage: 1,
+    score: 0,
+    coins: 0,
+    best: Number(localStorage.getItem('bb_best2d')||0),
+
+    dmg: 1,
+    fireRate: 12, // shots/sec
+    bulletSpeed: 900,
+
+    hpMax: 3,
+    hp: 3,
+
+    lastShot: 0,
+    paused: false,
+    gameOver: false,
+  };
+
+  const world = {
+    groundY: () => H - 92,
+    dangerY: () => H - 92 + 34, // line where balls bounce; damage only when they touch this line
+  };
+
+  // cannon
+  const cannon = {
+    x: W/2,
+    y: () => world.groundY(),
+    minX: 42,
+    maxX: () => W-42,
+    dragging: false
+  };
+
+  // entities
+  const bullets = [];
+  const balls = [];
+  const coinDrops = [];
+
+  function addBall(x,y,r,hp,vx,vy){
+    balls.push({x,y,r,hp,vx,vy, hitFlash:0});
+  }
+
+  function spawnLevel(lvl){
+    bullets.length=0;
+    balls.length=0;
+    coinDrops.length=0;
+
+    const count = clamp(3 + Math.floor(lvl*0.35), 3, 10);
+    const baseHP = 6 + Math.floor(lvl*1.2);
+
+    for(let i=0;i<count;i++){
+      const r = rand(22, 44);
+      const x = rand(r+12, W - r - 12);
+      const y = rand(120, 260);
+      const hp = Math.max(1, baseHP + Math.floor(rand(-4,9)));
+      addBall(x,y,r,hp, rand(-90,90), rand(-40,40));
+    }
+    state.hp = state.hpMax;
+  }
+
+  spawnLevel(state.level);
+
+  // ---------- input
+  function setCannonX(x){
+    cannon.x = clamp(x, cannon.minX, cannon.maxX());
+  }
+
+  canvas.addEventListener('pointerdown', (e)=>{
+    if (state.gameOver) { location.reload(); return; }
+    if (state.paused) return;
+    cannon.dragging = true;
+    setCannonX(e.clientX);
+  }, {passive:true});
+
+  canvas.addEventListener('pointermove', (e)=>{
+    if (!cannon.dragging || state.paused) return;
+    setCannonX(e.clientX);
+  }, {passive:true});
+
+  const endDrag = ()=>{ cannon.dragging=false; };
+  canvas.addEventListener('pointerup', endDrag, {passive:true});
+  canvas.addEventListener('pointercancel', endDrag, {passive:true});
+
+  // ---------- mechanics
+  function shoot(now){
+    const interval = 1000/state.fireRate;
+    if (now - state.lastShot < interval) return;
+    state.lastShot = now;
+
+    bullets.push({
+      x: cannon.x,
+      y: cannon.y() - 56,
+      vy: -state.bulletSpeed,
+      life: 1.25
+    });
+  }
+
+  function dropCoins(x,y,amount){
+    const n = clamp(Math.floor(amount/2), 1, 6);
+    for(let i=0;i<n;i++){
+      coinDrops.push({
+        x, y,
+        vx: rand(-130,130),
+        vy: rand(-320,-180),
+        g: 820,
+        life: 2.2
+      });
+    }
+  }
+
+  function splitBall(ball){
+    // split only if big enough
+    if (ball.r < 26) return;
+
+    const newR = ball.r * 0.68;
+    const hpEach = Math.max(1, Math.floor(ball.hp/2));
+    const speedBoost = 1.15;
+
+    addBall(ball.x - newR*0.6, ball.y, newR, hpEach, -Math.abs(ball.vx)*speedBoost - 70, -180);
+    addBall(ball.x + newR*0.6, ball.y, newR, hpEach,  Math.abs(ball.vx)*speedBoost + 70, -180);
+  }
+
+  function levelClear(){
+    // reward + next
+    state.best = Math.max(state.best, state.score);
+    localStorage.setItem('bb_best2d', String(state.best));
+
+    // simple upgrade pick (for now: auto)
+    // дальше сделаем красивый UI с карточками, сундуком, редкостями
+    state.coins += 40 + Math.floor(state.level*4);
+    // auto small progression
+    if (state.level % 2 === 0) state.dmg += 1;
+    if (state.level % 3 === 0) state.fireRate = Math.min(22, state.fireRate + 1);
+
+    state.level++;
+    if (state.level % 10 === 1 && state.level>1) state.stage++;
+
+    spawnLevel(state.level);
+  }
+
+  // ---------- rendering
+  function drawBackground(){
+    // sky
+    ctx.fillStyle = '#7ad9ff';
+    ctx.fillRect(0,0,W,H);
+
+    // mountains
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#43bce9';
+    ctx.beginPath();
+    ctx.moveTo(40, H*0.67);
+    ctx.lineTo(W*0.35, H*0.18);
+    ctx.lineTo(W*0.62, H*0.67);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(W*0.24, H*0.74);
+    ctx.lineTo(W*0.55, H*0.30);
+    ctx.lineTo(W*0.92, H*0.74);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+
+    // ground
+    ctx.fillStyle = '#70d65f';
+    ctx.fillRect(0, world.groundY()+40, W, H-(world.groundY()+40));
+
+    // ground line
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = '#2a2f3a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, world.groundY()+40);
+    ctx.lineTo(W, world.groundY()+40);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // danger line (invisible in final, but keep subtle)
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, world.dangerY());
+    ctx.lineTo(W, world.dangerY());
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawCannon(){
+    const x = cannon.x, y = cannon.y();
+
+    // wheels
+    ctx.fillStyle = '#1b1f28';
+    ctx.beginPath(); ctx.arc(x-26, y+26, 14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+26, y+26, 14, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x-26, y+26, 14, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x+26, y+26, 14, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // base
+    ctx.fillStyle = '#2a2f3a';
+    roundRect(x-40, y+18, 80, 34, 10, true);
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    roundRect(x-40, y+18, 80, 34, 10, false, true);
+    ctx.globalAlpha = 1;
+
+    // barrel
+    ctx.fillStyle = '#cfd6e4';
+    roundRect(x-9, y-34, 18, 56, 8, true);
+    ctx.globalAlpha = 0.14;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    roundRect(x-9, y-34, 18, 56, 8, false, true);
+    ctx.globalAlpha = 1;
+
+    // muzzle flash tiny
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#ffb100';
+    ctx.beginPath(); ctx.arc(x, y-40, 12, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  function roundRect(x,y,w,h,r,fill=false,stroke=false){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  function drawBall(ball){
+    const {x,y,r,hp} = ball;
+
+    // fill
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+
+    // stroke
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // hit flash
+    if (ball.hitFlash > 0){
+      ctx.globalAlpha = clamp(ball.hitFlash,0,1) * 0.22;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(x,y,r*1.02,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
     }
 
-    const config = {
-      type: Phaser.AUTO,
-      parent: 'game',
-      width: window.innerWidth,
-      height: window.innerHeight,
-      backgroundColor: '#77d9ff',
-      scene: [GameScene],
-      scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }
-    };
+    // hp text
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.round(r*0.82)}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(hp), x, y+1);
+  }
 
-    const game = new Phaser.Game(config);
-    window.addEventListener('resize', ()=> game.scale.resize(window.innerWidth, window.innerHeight));
-  </script>
+  function drawBullet(b){
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawCoin(c){
+    ctx.fillStyle = '#ffd33d';
+    ctx.beginPath(); ctx.arc(c.x, c.y, 7, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(c.x, c.y, 7, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function updateHud(){
+    hud.textContent =
+      `LEVEL: ${state.level}  STAGE: ${state.stage}\n`+
+      `SCORE: ${state.score}  BEST: ${state.best}\n`+
+      `COINS: ${state.coins}\n`+
+      `HP: ${state.hp}/${state.hpMax}  DMG:${state.dmg}  FR:${Math.round(state.fireRate)}`;
+  }
+
+  // ---------- loop
+  let last = performance.now();
+
+  function tick(now){
+    const dt = Math.min(0.033, (now - last)/1000);
+    last = now;
+
+    if (!state.paused && !state.gameOver){
+      // shoot
+      shoot(now);
+
+      // bullets update
+      for (let i=bullets.length-1;i>=0;i--){
+        const b = bullets[i];
+        b.y += b.vy * dt;
+        b.life -= dt;
+        if (b.life<=0 || b.y < -40) bullets.splice(i,1);
+      }
+
+      // balls update
+      for (let i=balls.length-1;i>=0;i--){
+        const ball = balls[i];
+
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+
+        // gravity
+        ball.vy += 280 * dt;
+
+        // walls
+        if (ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -1; }
+        if (ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx *= -1; }
+
+        // ceiling
+        if (ball.y - ball.r < 80){ ball.y = 80 + ball.r; ball.vy *= -1; }
+
+        // ground bounce + DAMAGE ONLY ON REAL TOUCH
+        const dy = world.dangerY();
+        if (ball.y + ball.r >= dy){
+          // touch
+          ball.y = dy - ball.r;
+          // only damage if it was moving downward (real hit)
+          if (ball.vy > 120){
+            state.hp -= 1;
+            if (navigator.vibrate) navigator.vibrate(15);
+            if (state.hp <= 0){
+              state.gameOver = true;
+              state.best = Math.max(state.best, state.score);
+              localStorage.setItem('bb_best2d', String(state.best));
+            }
+          }
+          ball.vy *= -0.78;
+        }
+
+        ball.hitFlash = Math.max(0, ball.hitFlash - dt*6);
+      }
+
+      // coins update
+      for (let i=coinDrops.length-1;i>=0;i--){
+        const c = coinDrops[i];
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.vy += c.g * dt;
+        c.life -= dt;
+
+        const gy = world.dangerY();
+        if (c.y >= gy){
+          c.y = gy;
+          c.vy *= -0.45;
+          c.vx *= 0.85;
+          if (Math.abs(c.vy) < 35) c.vy = 0;
+        }
+
+        // collect
+        const d = Math.hypot(c.x - cannon.x, c.y - (cannon.y()+22));
+        if (d < 44){
+          state.coins += 1;
+          coinDrops.splice(i,1);
+          continue;
+        }
+
+        if (c.life<=0) coinDrops.splice(i,1);
+      }
+
+      // bullet-ball collisions
+      for (let bi=bullets.length-1; bi>=0; bi--){
+        const b = bullets[bi];
+        let hitIndex = -1;
+
+        for (let i=0;i<balls.length;i++){
+          const ball = balls[i];
+          const d = Math.hypot(b.x - ball.x, b.y - ball.y);
+          if (d <= ball.r + 6){ hitIndex = i; break; }
+        }
+
+        if (hitIndex !== -1){
+          const ball = balls[hitIndex];
+          ball.hp -= state.dmg;
+          state.score += state.dmg;
+          ball.hitFlash = 1;
+
+          // remove bullet
+          bullets.splice(bi,1);
+
+          if (ball.hp <= 0){
+            // reward + split
+            state.coins += 5 + Math.floor(state.level/2);
+            dropCoins(ball.x, ball.y, 12 + state.level);
+            splitBall(ball);
+            balls.splice(hitIndex,1);
+          }
+        }
+      }
+
+      // clear
+      if (balls.length === 0 && !state.gameOver){
+        levelClear();
+      }
+
+      updateHud();
+    }
+
+    // ---------- render
+    drawBackground();
+
+    // bullets
+    for (const b of bullets) drawBullet(b);
+
+    // balls
+    for (const ball of balls) drawBall(ball);
+
+    // coins
+    for (const c of coinDrops) drawCoin(c);
+
+    // cannon
+    drawCannon();
+
+    // game over overlay
+    if (state.gameOver){
+      ctx.globalAlpha = 0.42;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '800 30px system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      ctx.fillText('GAME OVER', W/2, H/2 - 18);
+      ctx.font = '700 14px system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.fillText('Tap to restart', W/2, H/2 + 20);
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+})();
+</script>
 </body>
 </html>
