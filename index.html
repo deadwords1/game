@@ -8,19 +8,21 @@
     :root{
       --bg0:#070A10;
       --bg1:#0B1020;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.08);
+      --glass: rgba(255,255,255,.06);
+      --glass2: rgba(255,255,255,.09);
       --stroke: rgba(255,255,255,.10);
       --text: rgba(255,255,255,.92);
       --muted: rgba(255,255,255,.62);
       --muted2: rgba(255,255,255,.45);
       --accent:#8B5CF6;
       --accent2:#EC4899;
+      --cyan:#38bdf8;
       --good:#22c55e;
       --bad:#ef4444;
       --warn:#f59e0b;
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --r16: 16px;
+      --r20: 20px;
       --r22: 22px;
     }
 
@@ -38,7 +40,6 @@
       overflow:hidden;
     }
 
-    /* Safe area padding for iOS */
     .app{
       height:100%;
       display:flex;
@@ -53,19 +54,16 @@
       align-items:center;
       justify-content:space-between;
       padding: 12px 14px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
       gap:10px;
-      min-width:0;
     }
+    .brand{display:flex; align-items:center; gap:10px; min-width:0}
     .logo{
       width:34px;height:34px;border-radius:12px;
       background: linear-gradient(135deg, rgba(139,92,246,.95), rgba(236,72,153,.95));
       box-shadow: 0 10px 30px rgba(139,92,246,.35);
       position:relative;
       overflow:hidden;
+      flex:0 0 auto;
     }
     .logo::after{
       content:"";
@@ -76,13 +74,12 @@
     }
     @keyframes shine{
       0%{transform: rotate(25deg) translateX(-60%)}
-      50%{transform: rotate(25deg) translateX(60%)}
+      55%{transform: rotate(25deg) translateX(60%)}
       100%{transform: rotate(25deg) translateX(140%)}
     }
-
     .brandText{min-width:0}
     .brandText .title{
-      font-weight:800;
+      font-weight:900;
       font-size:14px;
       letter-spacing:.2px;
       white-space:nowrap;
@@ -97,7 +94,8 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    .pillRow{display:flex; gap:8px; align-items:center}
+
+    .pillRow{display:flex; gap:8px; align-items:center; flex:0 0 auto}
     .pill{
       padding:8px 10px;
       border-radius:999px;
@@ -111,19 +109,20 @@
       font-size:12px;
       color:var(--muted);
       user-select:none;
+      white-space:nowrap;
     }
-    .pill strong{color:var(--text); font-weight:800}
+    .pill strong{color:var(--text); font-weight:900}
     .dot{
       width:8px;height:8px;border-radius:99px;background:var(--good);
       box-shadow: 0 0 0 4px rgba(34,197,94,.14);
     }
 
-    /* Main panels */
+    /* Main */
     .main{
       flex:1;
       min-height:0;
-      display:flex;
       padding: 0 12px 10px;
+      display:flex;
     }
     .panel{
       width:100%;
@@ -138,12 +137,12 @@
     .panel::before{
       content:"";
       position:absolute; inset:0;
-      background: radial-gradient(900px 380px at 30% -10%, rgba(139,92,246,.16), transparent 60%),
-                  radial-gradient(900px 380px at 90% 20%, rgba(236,72,153,.12), transparent 60%);
+      background:
+        radial-gradient(900px 380px at 30% -10%, rgba(139,92,246,.16), transparent 60%),
+        radial-gradient(900px 380px at 90% 20%, rgba(236,72,153,.12), transparent 60%);
       pointer-events:none;
     }
 
-    /* Screens */
     .screen{
       position:absolute;
       inset:0;
@@ -158,14 +157,112 @@
       to{transform: translateY(0); opacity:1}
     }
 
+    /* Toolbar */
+    .toolbar{
+      position:relative;
+      z-index:2;
+      padding: 12px 12px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(10,12,18,.28);
+      backdrop-filter: blur(10px);
+    }
+    .toolbar .left{display:flex; align-items:center; gap:10px; min-width:0}
+    .h{
+      font-weight:900;
+      font-size:14px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .hint{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .mini{
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size:12px;
+      user-select:none;
+    }
+    .row{display:flex; gap:10px; align-items:center}
+
+    .btn{
+      border:0;
+      background: linear-gradient(135deg, rgba(139,92,246,.9), rgba(236,72,153,.82));
+      color:white;
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      box-shadow: 0 14px 40px rgba(139,92,246,.20);
+      transition: transform .12s ease, filter .12s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:active{transform: scale(.99); filter: brightness(.96)}
+
+    .btnGhost{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      transition: transform .12s ease, background .16s ease, border-color .16s ease;
+    }
+    .btnGhost:active{transform: scale(.99)}
+    .btnGhost.hot{
+      background: linear-gradient(135deg, rgba(56,189,248,.18), rgba(139,92,246,.16));
+      border-color: rgba(56,189,248,.22);
+    }
+
+    .content{
+      position:relative;
+      z-index:2;
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding: 12px;
+    }
+
+    .card{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r16);
+      padding: 12px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.28);
+    }
+    .muted{color: var(--muted)}
+    .small{font-size:12px}
+    .strong{font-weight:900}
+
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+
     /* Bottom nav */
     .nav{
       height:74px;
       padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
       display:flex;
-      gap:8px;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
     }
     .navInner{
       width:100%;
@@ -193,8 +290,6 @@
       cursor:pointer;
       user-select:none;
       transition: transform .12s ease, background .16s ease, color .16s ease;
-      position:relative;
-      overflow:hidden;
     }
     .navBtn:active{transform: scale(.98)}
     .navBtn.active{
@@ -237,125 +332,19 @@
     .toast .ttext{font-size:12.5px; color: var(--text)}
     .toast .ttext small{display:block; color: var(--muted); margin-top:2px}
 
-    /* Common UI */
-    .toolbar{
-      position:relative;
-      z-index:2;
-      padding: 12px 12px 10px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      background: rgba(10,12,18,.28);
-      backdrop-filter: blur(10px);
-    }
-    .toolbar .left{
-      display:flex; align-items:center; gap:10px; min-width:0;
-    }
-    .toolbar .h{
-      font-weight:900;
-      font-size:14px;
-      letter-spacing:.2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .toolbar .hint{
-      font-size:12px;
-      color: var(--muted);
-      margin-top:2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .mini{
-      padding:8px 10px;
-      border-radius:999px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      color: var(--muted);
-      font-size:12px;
-      user-select:none;
-    }
-    .btn{
-      border:0;
-      background: linear-gradient(135deg, rgba(139,92,246,.9), rgba(236,72,153,.82));
-      color:white;
-      padding:10px 12px;
-      border-radius: 14px;
-      font-weight:900;
-      font-size:12px;
-      cursor:pointer;
-      box-shadow: 0 14px 40px rgba(139,92,246,.20);
-      transition: transform .12s ease, filter .12s ease;
-      user-select:none;
-    }
-    .btn:active{transform: scale(.99); filter: brightness(.96)}
-    .btnGhost{
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      padding:10px 12px;
-      border-radius: 14px;
-      font-weight:800;
-      font-size:12px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .btnGhost:active{transform: scale(.99)}
-    .row{display:flex; gap:10px; align-items:center}
-
-    .content{
-      position:relative;
-      z-index:2;
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding: 12px;
-    }
-
-    .card{
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--r16);
-      padding: 12px;
-      box-shadow: 0 14px 34px rgba(0,0,0,.28);
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-    .grid3{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap:10px;
-    }
-    .muted{color: var(--muted)}
-    .small{font-size:12px}
-    .strong{font-weight:900}
-
-    /* Chats screen */
-    .chatList{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
+    /* Chats */
+    .chatList{display:flex; flex-direction:column; gap:10px;}
     .chatItem{
-      display:flex;
-      gap:12px;
-      align-items:center;
+      display:flex; gap:12px; align-items:center;
       padding:12px;
       border-radius: 18px;
       background: rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.08);
       cursor:pointer;
-      transition: transform .12s ease, background .16s ease, border-color .16s ease;
       user-select:none;
+      transition: transform .12s ease, background .16s ease;
     }
     .chatItem:active{transform: scale(.99)}
-    .chatItem:hover{background: rgba(255,255,255,.065)}
     .ava{
       width:42px;height:42px;border-radius:16px;
       background: linear-gradient(135deg, rgba(56,189,248,.25), rgba(139,92,246,.32));
@@ -364,6 +353,7 @@
       place-items:center;
       font-weight:900;
       box-shadow: 0 14px 30px rgba(0,0,0,.25);
+      flex:0 0 auto;
     }
     .chatMeta{min-width:0; flex:1}
     .chatName{
@@ -395,13 +385,8 @@
       place-items:center;
     }
 
-    /* Conversation */
-    .convWrap{
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      height:100%;
-    }
+    /* Dialog */
+    .convWrap{display:flex; flex-direction:column; min-height:0; height:100%;}
     .conv{
       flex:1;
       min-height:0;
@@ -412,7 +397,7 @@
       gap:10px;
     }
     .bubble{
-      max-width: 82%;
+      max-width: 84%;
       padding: 10px 12px;
       border-radius: 18px;
       border:1px solid rgba(255,255,255,.10);
@@ -420,6 +405,7 @@
       line-height: 1.25;
       box-shadow: 0 12px 30px rgba(0,0,0,.22);
       animation: bIn .15s ease-out;
+      white-space:pre-wrap;
     }
     @keyframes bIn{
       from{transform: translateY(6px); opacity:.5}
@@ -442,13 +428,22 @@
     }
 
     .composer{
-      display:flex;
-      gap:10px;
       padding: 10px 12px 12px;
       border-top:1px solid rgba(255,255,255,.08);
       background: rgba(10,12,18,.28);
       backdrop-filter: blur(10px);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
+    .quickBar{
+      display:flex;
+      gap:8px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      padding:2px 2px 0;
+    }
+    .inputRow{display:flex; gap:10px;}
     .input{
       flex:1;
       padding: 12px 12px;
@@ -522,6 +517,7 @@
       border:1px solid rgba(255,255,255,.10);
       display:grid;place-items:center;
       font-size:18px;
+      flex:0 0 auto;
     }
     .pmeta{flex:1; min-width:0}
     .pname{font-weight:900; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -529,7 +525,7 @@
     .pprice{margin-top:8px; font-weight:900; font-size:13px}
     .pactions{display:flex; flex-direction:column; gap:8px; align-items:flex-end}
 
-    /* Price / Warehouse */
+    /* Key-value line */
     .kv{
       display:flex;
       justify-content:space-between;
@@ -542,17 +538,10 @@
       margin-top:10px;
     }
     .kv .k{color:var(--muted); font-size:12px}
-    .kv .v{font-weight:900; font-size:13px}
+    .kv .v{font-weight:900; font-size:13px; white-space:nowrap}
 
-    .slider{
-      width:100%;
-      accent-color: var(--accent);
-    }
-
-    .chipRow{
-      display:flex; flex-wrap:wrap; gap:8px;
-      margin-top:10px;
-    }
+    .slider{width:100%; accent-color: var(--accent);}
+    .chipRow{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
     .chip{
       padding:8px 10px;
       border-radius: 999px;
@@ -563,10 +552,8 @@
       user-select:none;
     }
 
-    /* Little shimmer for "premium" feel */
-    .shimmer{
-      position:relative; overflow:hidden;
-    }
+    /* Shimmer */
+    .shimmer{position:relative; overflow:hidden;}
     .shimmer::after{
       content:"";
       position:absolute; inset:-40%;
@@ -581,7 +568,6 @@
       100%{transform: rotate(18deg) translateX(150%)}
     }
 
-    /* Scrollbar minimal (some browsers ignore) */
     ::-webkit-scrollbar{width:10px}
     ::-webkit-scrollbar-thumb{background: rgba(255,255,255,.10); border-radius:10px}
     ::-webkit-scrollbar-track{background: transparent}
@@ -595,7 +581,7 @@
       <div class="logo"></div>
       <div class="brandText">
         <div class="title" id="topTitle">Теневой Маркет</div>
-        <div class="sub" id="topSub">Чаты • Сделки • Прайс</div>
+        <div class="sub" id="topSub">Чаты • Прайс • Склад</div>
       </div>
     </div>
     <div class="pillRow">
@@ -606,7 +592,8 @@
 
   <div class="main">
     <div class="panel">
-      <!-- Chats -->
+
+      <!-- CHATS -->
       <div class="screen active" id="screen-chats">
         <div class="toolbar">
           <div class="left">
@@ -624,15 +611,15 @@
           <div class="chatList" id="chatList"></div>
           <div style="height:14px"></div>
           <div class="card shimmer">
-            <div class="strong">🔥 Механика</div>
+            <div class="strong">🔥 Как играть</div>
             <div class="muted small" style="margin-top:6px">
-              Прайс = наценка. Закупаешь в магазине → продаёшь в чатах. Репутация влияет на VIP-клиентов и шанс отмены.
+              1) Закупай товар в 🛒 Магазине • 2) Настраивай наценку в 💰 Прайсе • 3) В чатах жми готовые ответы и продавай.
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Dialog -->
+      <!-- DIALOG -->
       <div class="screen" id="screen-dialog">
         <div class="toolbar">
           <div class="left">
@@ -649,20 +636,24 @@
 
         <div class="convWrap">
           <div class="conv" id="conv"></div>
+
           <div class="composer">
-            <input class="input" id="msgInput" placeholder="Сообщение..." />
-            <button class="send" id="btnSend" title="Отправить">➤</button>
+            <div class="quickBar" id="quickBar"></div>
+            <div class="inputRow">
+              <input class="input" id="msgInput" placeholder="Сообщение (необязательно)..." />
+              <button class="send" id="btnSend" title="Отправить">➤</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Price -->
+      <!-- PRICE -->
       <div class="screen" id="screen-price">
         <div class="toolbar">
           <div class="left">
             <div>
               <div class="h">💰 Прайс</div>
-              <div class="hint">Настрой наценку и стратегию</div>
+              <div class="hint">Наценка влияет на шанс сделки и прибыль</div>
             </div>
           </div>
           <button class="btn" id="btnAutoPrice">Авто-прайс</button>
@@ -671,13 +662,16 @@
         <div class="content">
           <div class="card">
             <div class="strong">Наценка: <span id="markupLabel">35%</span></div>
-            <div class="muted small" style="margin-top:6px">Больше наценка → больше прибыль, но ниже шанс сделки.</div>
+            <div class="muted small" style="margin-top:6px">
+              Больше наценка → больше прибыль, но ниже шанс сделки. Репутация повышает шанс.
+            </div>
             <div style="height:12px"></div>
             <input class="slider" type="range" min="5" max="120" value="35" id="markup" />
+
             <div class="chipRow">
-              <div class="chip">Шанс сделки зависит от репутации</div>
-              <div class="chip">VIP любят скорость</div>
-              <div class="chip">Слишком дорого → отказы</div>
+              <div class="chip">VIP повышают шанс</div>
+              <div class="chip">Скидка повышает шанс</div>
+              <div class="chip">Отмены бьют по репе</div>
             </div>
 
             <div class="kv">
@@ -690,8 +684,8 @@
 
             <div class="kv">
               <div>
-                <div class="k">Средняя прибыль / сделка</div>
-                <div class="muted small">по текущей корзине</div>
+                <div class="k">Средняя маржа / сделка</div>
+                <div class="muted small">по текущему складу</div>
               </div>
               <div class="v" id="avgProfit">—</div>
             </div>
@@ -700,21 +694,21 @@
           <div style="height:12px"></div>
 
           <div class="card">
-            <div class="strong">План</div>
+            <div class="strong">Совет</div>
             <div class="muted small" style="margin-top:6px">
-              Закупай по “споту” в магазине, держи склад 8–15 ед, наценку 25–55% для стабильных продаж.
+              Для стабильных продаж держи наценку 25–55%. Если репа просела — снижай наценку и делай скидки.
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Warehouse -->
+      <!-- WAREHOUSE -->
       <div class="screen" id="screen-warehouse">
         <div class="toolbar">
           <div class="left">
             <div>
               <div class="h">📦 Склад</div>
-              <div class="hint">Твой инвентарь и оборот</div>
+              <div class="hint">Инвентарь, оборот и события</div>
             </div>
           </div>
           <button class="btnGhost" id="btnClearLogs">Очистить лог</button>
@@ -736,7 +730,7 @@
 
           <div class="card">
             <div class="strong">Инвентарь</div>
-            <div class="muted small" style="margin-top:6px">Тут хранится то, что реально продаётся в чатах.</div>
+            <div class="muted small" style="margin-top:6px">Товары, которые реально продаются в чатах.</div>
             <div style="height:10px"></div>
             <div id="invList" style="display:flex; flex-direction:column; gap:10px;"></div>
           </div>
@@ -745,14 +739,14 @@
 
           <div class="card">
             <div class="strong">Лог событий</div>
-            <div class="muted small" style="margin-top:6px">Сделки, закупы, отмены.</div>
+            <div class="muted small" style="margin-top:6px">Закупы, сделки, отмены.</div>
             <div style="height:10px"></div>
             <div id="logList" style="display:flex; flex-direction:column; gap:8px;"></div>
           </div>
         </div>
       </div>
 
-      <!-- Shop -->
+      <!-- SHOP -->
       <div class="screen" id="screen-shop">
         <div class="toolbar">
           <div class="left">
@@ -772,13 +766,13 @@
         </div>
       </div>
 
-      <!-- Profile -->
+      <!-- PROFILE -->
       <div class="screen" id="screen-profile">
         <div class="toolbar">
           <div class="left">
             <div>
               <div class="h">⚙ Профиль</div>
-              <div class="hint">Статы, риски и прогресс</div>
+              <div class="hint">Прогресс, статы и риски</div>
             </div>
           </div>
           <button class="btnGhost" id="btnReset">Сброс</button>
@@ -786,29 +780,16 @@
 
         <div class="content">
           <div class="card shimmer">
-            <div class="strong">Уровень: <span id="lvl">1</span></div>
+            <div class="strong">Уровень: <span id="lvl">1</span> • XP: <span id="xp">0</span></div>
             <div class="muted small" style="margin-top:6px">Опыт растёт от успешных сделок.</div>
 
-            <div class="kv">
-              <div class="k">Репутация</div>
-              <div class="v" id="rep">0</div>
-            </div>
-            <div class="kv">
-              <div class="k">Сделок</div>
-              <div class="v" id="sales">0</div>
-            </div>
-            <div class="kv">
-              <div class="k">Отмен</div>
-              <div class="v" id="cancels">0</div>
-            </div>
-            <div class="kv">
-              <div class="k">VIP клиентов</div>
-              <div class="v" id="vipCount">0</div>
-            </div>
+            <div class="kv"><div class="k">Репутация</div><div class="v" id="rep">0</div></div>
+            <div class="kv"><div class="k">Сделок</div><div class="v" id="sales">0</div></div>
+            <div class="kv"><div class="k">Отмен</div><div class="v" id="cancels">0</div></div>
 
             <div style="height:10px"></div>
             <div class="muted small">
-              Риск отмены падает с ростом репутации. Слишком высокая наценка режет шанс сделки.
+              Чем выше репа — тем меньше отмен и больше шанс сделки. Слишком высокая наценка режет шанс.
             </div>
           </div>
 
@@ -817,7 +798,7 @@
           <div class="card">
             <div class="strong">Подработки (скоро)</div>
             <div class="muted small" style="margin-top:6px">
-              Дроп-доставка, перепрошивка устройств, скупка лома, “быстрые сделки”. Могу добавить следующей итерацией.
+              Ремонт, перепродажа аксессуаров, “быстрые сделки”, ленты объявлений. Добавим следующей итерацией.
             </div>
           </div>
         </div>
@@ -851,6 +832,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
 const now=()=>new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+const KEY='shadow_market_full_ru_v1';
 
 function toast(icon, title, sub=""){
   const t = document.getElementById('toast');
@@ -859,7 +841,11 @@ function toast(icon, title, sub=""){
   el.innerHTML = `${title}${sub?`<small>${sub}</small>`:''}`;
   t.classList.add('show');
   clearTimeout(toast._tm);
-  toast._tm = setTimeout(()=>t.classList.remove('show'), 2200);
+  toast._tm = setTimeout(()=>t.classList.remove('show'), 2300);
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
 }
 
 /* ===========================
@@ -871,64 +857,76 @@ const CATEGORIES = [
   {id:'laptops', name:'Ноутбуки', icon:'💻'},
   {id:'audio', name:'Аудио', icon:'🎧'},
   {id:'wear', name:'Wearables', icon:'⌚'},
+  {id:'access', name:'Аксессуары', icon:'🧰'},
 ];
 
 const PRODUCTS = [
   // phones
   {id:'ip13', cat:'phones', name:'iPhone 13', icon:'📱', desc:'128GB • состояние A', base: 180000},
   {id:'ip14', cat:'phones', name:'iPhone 14', icon:'📱', desc:'128GB • состояние A-', base: 230000},
-  {id:'pix7', cat:'phones', name:'Pixel 7', icon:'📱', desc:'128GB • чистый андроид', base: 165000},
-  {id:'s23', cat:'phones', name:'Galaxy S23', icon:'📱', desc:'256GB • экран идеал', base: 240000},
+  {id:'pix7', cat:'phones', name:'Pixel 7', icon:'📱', desc:'128GB • чистый Android', base: 165000},
+  {id:'s23',  cat:'phones', name:'Galaxy S23', icon:'📱', desc:'256GB • экран идеал', base: 240000},
+  {id:'mi13', cat:'phones', name:'Xiaomi 13', icon:'📱', desc:'256GB • быстрый', base: 175000},
+
   // consoles
-  {id:'ps5', cat:'consoles', name:'PlayStation 5', icon:'🎮', desc:'Дисковая • гарантия', base: 260000},
-  {id:'xbox', cat:'consoles', name:'Xbox Series X', icon:'🎮', desc:'1TB • тихая', base: 255000},
-  {id:'switch', cat:'consoles', name:'Nintendo Switch', icon:'🎮', desc:'OLED • полный комплект', base: 165000},
+  {id:'ps5',   cat:'consoles', name:'PlayStation 5', icon:'🎮', desc:'Дисковая • гарантия', base: 260000},
+  {id:'xbox',  cat:'consoles', name:'Xbox Series X', icon:'🎮', desc:'1TB • тихая', base: 255000},
+  {id:'switch',cat:'consoles', name:'Nintendo Switch OLED', icon:'🎮', desc:'полный комплект', base: 165000},
+
   // laptops
-  {id:'mba', cat:'laptops', name:'MacBook Air M1', icon:'💻', desc:'8/256 • батарея 90%+', base: 320000},
-  {id:'legion', cat:'laptops', name:'Lenovo Legion', icon:'💻', desc:'RTX • игровой', base: 520000},
-  {id:'asus', cat:'laptops', name:'ASUS VivoBook', icon:'💻', desc:'для учёбы/офиса', base: 240000},
+  {id:'mba',   cat:'laptops', name:'MacBook Air M1', icon:'💻', desc:'8/256 • батарея 90%+', base: 320000},
+  {id:'legion',cat:'laptops', name:'Lenovo Legion', icon:'💻', desc:'RTX • игровой', base: 520000},
+  {id:'asus',  cat:'laptops', name:'ASUS VivoBook', icon:'💻', desc:'для учёбы/офиса', base: 240000},
+
   // audio
-  {id:'airpods', cat:'audio', name:'AirPods Pro', icon:'🎧', desc:'шумодав • комплект', base: 105000},
-  {id:'sony', cat:'audio', name:'Sony WH-1000XM', icon:'🎧', desc:'топ шумодав', base: 145000},
-  {id:'jbl', cat:'audio', name:'JBL Charge', icon:'🎧', desc:'бас • автономность', base: 65000},
+  {id:'airpods',cat:'audio', name:'AirPods Pro', icon:'🎧', desc:'шумодав • комплект', base: 105000},
+  {id:'sony',  cat:'audio', name:'Sony WH-1000XM', icon:'🎧', desc:'топ шумодав', base: 145000},
+  {id:'jbl',   cat:'audio', name:'JBL Charge', icon:'🎧', desc:'бас • автономность', base: 65000},
+
   // wear
-  {id:'aw', cat:'wear', name:'Apple Watch', icon:'⌚', desc:'Series • ремешок', base: 115000},
-  {id:'garmin', cat:'wear', name:'Garmin', icon:'⌚', desc:'спорт • GPS', base: 135000},
-  {id:'band', cat:'wear', name:'Mi Band', icon:'⌚', desc:'бюджет • топ', base: 18000},
+  {id:'aw',    cat:'wear', name:'Apple Watch', icon:'⌚', desc:'Series • ремешок', base: 115000},
+  {id:'garmin',cat:'wear', name:'Garmin', icon:'⌚', desc:'спорт • GPS', base: 135000},
+  {id:'band',  cat:'wear', name:'Mi Band', icon:'⌚', desc:'бюджет • топ', base: 18000},
+
+  // accessories
+  {id:'case',  cat:'access', name:'Чехлы (опт)', icon:'🧰', desc:'20шт • разные модели', base: 12000},
+  {id:'cable', cat:'access', name:'Кабели USB-C (опт)', icon:'🧰', desc:'10шт • качественные', base: 9000},
+  {id:'charger',cat:'access',name:'Зарядки 20W (опт)', icon:'🧰', desc:'5шт • быстрые', base: 15000},
+  {id:'pad',   cat:'access', name:'Геймпад (аналог)', icon:'🧰', desc:'под PC/консоль', base: 22000},
 ];
 
 const CLIENTS = [
   {id:'a', name:'Али', mood:'любит скидку', vip:false},
   {id:'b', name:'Даня', mood:'хочет быстро', vip:false},
-  {id:'c', name:'Саня', mood:'торгуется', vip:false},
+  {id:'c', name:'Саня', mood:'жёстко торгуется', vip:false},
   {id:'d', name:'Мира', mood:'VIP • платит сразу', vip:true},
   {id:'e', name:'Нур', mood:'спрашивает детали', vip:false},
   {id:'f', name:'Лёха', mood:'вечно сомневается', vip:false},
 ];
 
 /* ===========================
-   State (with persistence)
+   State (persistence)
 =========================== */
-const KEY='shadow_market_v2_ru';
-
 const defaultState = {
   balance: 250000,
   rep: 52,
   xp: 0,
   level: 1,
-  markup: 35,           // %
+  markup: 35,
   sales: 0,
   cancels: 0,
   turnover: 0,
-  inv: {},              // productId -> qty
-  chats: {},            // clientId -> messages [{from:'you'|'me', text, ts}]
-  unread: {},           // clientId -> number
-  spot: {},             // productId -> current buy price
+  inv: {},
+  chats: {},
+  unread: {},
+  spot: {},
+  logs: [],
   activeClientId: null,
   shopCat: 'phones',
 };
 
-let S = load() || defaultState;
+let S = load() || structuredClone(defaultState);
+
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 function load(){
   try{
@@ -938,36 +936,39 @@ function load(){
   }catch{ return null }
 }
 
+function structuredClone(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+
 function ensureInit(){
-  // init spot prices
   for(const p of PRODUCTS){
     if(!S.spot[p.id]) S.spot[p.id] = spotPrice(p.base);
   }
-  // init chats
   for(const c of CLIENTS){
     if(!S.chats[c.id]){
       S.chats[c.id] = [];
       S.unread[c.id] = 0;
     }
   }
-  // init some inventory
   if(Object.keys(S.inv).length===0){
     S.inv['band']=3;
     S.inv['jbl']=2;
     S.inv['pix7']=1;
+    S.inv['case']=1;
   }
   save();
 }
 ensureInit();
 
+/* ===========================
+   Economy
+=========================== */
 function spotPrice(base){
-  // +/- 18% swing
   const k = 1 + (Math.random()*0.36 - 0.18);
   return Math.round(base * k);
 }
 function refreshSpot(){
   for(const p of PRODUCTS){
-    // smooth drift instead of full random
     const cur = S.spot[p.id];
     const target = spotPrice(p.base);
     S.spot[p.id] = Math.round(cur*0.65 + target*0.35);
@@ -975,17 +976,12 @@ function refreshSpot(){
   save();
 }
 
-/* ===========================
-   Economy helpers
-=========================== */
 function invCount(){
   return Object.values(S.inv).reduce((a,b)=>a+b,0);
 }
-function hasAnyStock(){
-  return invCount() > 0;
-}
+function hasAnyStock(){ return invCount() > 0; }
+
 function levelFromXp(xp){
-  // simple curve
   let lvl = 1;
   let need = 120;
   let left = xp;
@@ -996,30 +992,27 @@ function levelFromXp(xp){
   }
   return lvl;
 }
+
 function sellPrice(productId){
   const buy = S.spot[productId];
   return Math.round(buy * (1 + S.markup/100));
 }
+
 function dealChanceBase(){
-  // Higher markup reduces chance.
-  // Reputation increases chance.
-  const m = S.markup; // 5..120
-  const rep = S.rep;  // 0..100 (we’ll clamp)
-  const repN = clamp(rep, 0, 100)/100;
-  // base chance with markup:
-  let base = 0.78 - (m/140); // markup hurts
-  base += (repN * 0.22);     // rep helps
+  const m = S.markup;
+  const repN = clamp(S.rep, 0, 100)/100;
+  let base = 0.78 - (m/140);
+  base += (repN * 0.22);
   base = clamp(base, 0.10, 0.92);
   return base;
 }
 function cancelChance(){
-  // cancellation risk decreases with rep
   const repN = clamp(S.rep,0,100)/100;
   return clamp(0.22 - repN*0.16, 0.04, 0.22);
 }
 
 /* ===========================
-   UI bindings
+   UI
 =========================== */
 const screens = {
   chats: document.getElementById('screen-chats'),
@@ -1042,10 +1035,9 @@ function openScreen(name){
   if(name==='chats') renderChats();
   if(name==='shop') renderShop();
   if(name==='warehouse') renderWarehouse();
-  if(name==='price') renderPrice();
+  if(name==='price') renderPrice(true);
   if(name==='profile') renderProfile();
 
-  // topbar subtitle hint
   const sub = document.getElementById('topSub');
   const map = {
     chats:'Чаты • сделки в переписке',
@@ -1053,9 +1045,9 @@ function openScreen(name){
     warehouse:'Склад • инвентарь • лог',
     shop:'Магазин • закупка • спот',
     profile:'Профиль • статы • прогресс',
-    dialog:'Диалог • продажа в чате'
+    dialog:'Диалог • быстрые ответы',
   };
-  sub.textContent = map[name] || 'Чаты • Сделки • Прайс';
+  sub.textContent = map[name] || 'Чаты • Прайс • Склад';
 
   save();
   tickTop();
@@ -1068,13 +1060,21 @@ function tickTop(){
 tickTop();
 
 /* ===========================
+   Logs
+=========================== */
+function logEvent(text){
+  S.logs.unshift({ts: now(), text});
+  S.logs = S.logs.slice(0, 40);
+  save();
+}
+
+/* ===========================
    Chats
 =========================== */
 const chatList = document.getElementById('chatList');
 const btnPing = document.getElementById('btnPing');
 
 btnPing.addEventListener('click', ()=>{
-  // create 1-2 new incoming messages
   spawnIncoming(rnd(1,2));
   toast('📨','Пинг отправлен','Клиенты активизировались');
   renderChats();
@@ -1098,7 +1098,7 @@ function renderChats(){
     el.innerHTML = `
       <div class="ava">${c.name.slice(0,1).toUpperCase()}</div>
       <div class="chatMeta">
-        <div class="chatName">${c.name}<span class="muted small">${vip}</span></div>
+        <div class="chatName">${escapeHtml(c.name)}<span class="muted small">${vip}</span></div>
         <div class="chatPreview">${escapeHtml(lastPreview(c.id))}</div>
       </div>
       ${unread>0?`<div class="badge">${unread}</div>`:''}
@@ -1108,25 +1108,19 @@ function renderChats(){
   }
 }
 
-function escapeHtml(s){
-  return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
-}
-
 /* ===========================
-   Dialog
+   Dialog + Quick Replies
 =========================== */
 const conv = document.getElementById('conv');
 const msgInput = document.getElementById('msgInput');
 const btnSend = document.getElementById('btnSend');
 const btnBack = document.getElementById('btnBack');
 const stockMini = document.getElementById('stockMini');
+const quickBar = document.getElementById('quickBar');
 
 btnBack.addEventListener('click', ()=>openScreen('chats'));
-
 btnSend.addEventListener('click', sendMsg);
-msgInput.addEventListener('keydown', (e)=>{
-  if(e.key==='Enter') sendMsg();
-});
+msgInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendMsg(); });
 
 function openDialog(clientId){
   S.activeClientId = clientId;
@@ -1146,6 +1140,7 @@ function renderDialog(){
   stockMini.textContent = invCount();
   const cid = S.activeClientId;
   const msgs = S.chats[cid] || [];
+
   conv.innerHTML = '';
   for(const m of msgs){
     const b = document.createElement('div');
@@ -1155,14 +1150,14 @@ function renderDialog(){
   }
   conv.scrollTop = conv.scrollHeight;
 
-  // If chat is empty, seed with a request
   if(msgs.length===0){
     addIncoming(cid, makeClientRequest(cid), true);
   }
+
+  renderQuickReplies();
 }
 
 function addMessage(cid, from, text){
-  if(!S.chats[cid]) S.chats[cid]=[];
   S.chats[cid].push({from, text, ts: now()});
   save();
 }
@@ -1178,7 +1173,7 @@ function addIncoming(cid, text, immediate=false){
     save();
   };
   if(immediate) return doIt();
-  setTimeout(doIt, rnd(350, 900));
+  setTimeout(doIt, rnd(320, 850));
 }
 
 function addOutgoing(cid, text){
@@ -1204,30 +1199,17 @@ function sendMsg(){
 
   const t = (msgInput.value || '').trim();
   if(!t) return;
-
   msgInput.value='';
+
   addOutgoing(cid, t);
   renderDialog();
 
-  // If user asks for price or says "цена", respond with offer + attempt sale
   const low = t.toLowerCase();
-
   if(low.includes('цена') || low.includes('сколько') || low.includes('прайс') || low.includes('почём')){
-    offerAndMaybeSell(cid);
+    offerAndMaybeSell(cid, {style:'normal'});
     return;
   }
 
-  // quick commands
-  if(low === '/оффер' || low === '/offer'){
-    offerAndMaybeSell(cid);
-    return;
-  }
-  if(low === '/склад' || low === '/stock'){
-    addIncoming(cid, `На складе сейчас ${invCount()} ед.`, false);
-    return;
-  }
-
-  // otherwise client replies
   const replies = [
     'Ок, понял.',
     'Можешь скинуть подробности?',
@@ -1238,66 +1220,197 @@ function sendMsg(){
   addIncoming(cid, pick(replies), false);
 }
 
-function offerAndMaybeSell(cid){
+/* Quick replies render (adaptive) */
+function renderQuickReplies(){
+  quickBar.innerHTML = '';
+  const cid = S.activeClientId;
+  const c = CLIENTS.find(x=>x.id===cid);
+  const stock = invCount();
+
+  const actions = [];
+
+  // always
+  actions.push({
+    id:'offer',
+    text:'💰 Прайс',
+    hot: stock>0,
+    run: ()=>offerAndMaybeSell(cid, {style:'normal'})
+  });
+
+  actions.push({
+    id:'discount',
+    text:'🤝 Скидка',
+    hot: (S.rep < 55 || (c && c.vip)),
+    run: ()=>offerAndMaybeSell(cid, {style:'discount'})
+  });
+
+  actions.push({
+    id:'stock',
+    text:'📦 Склад',
+    hot: false,
+    run: ()=>replyStock(cid)
+  });
+
+  actions.push({
+    id:'delivery',
+    text:'🕒 Сегодня',
+    hot: (S.rep < 60),
+    run: ()=>replyDelivery(cid)
+  });
+
+  if(stock===0){
+    actions.push({
+      id:'shop',
+      text:'🛒 Закупиться',
+      hot: true,
+      run: ()=>{ toast('🛒','Открываю магазин'); openScreen('shop'); }
+    });
+  }else{
+    actions.push({
+      id:'fast',
+      text:'⚡ Быстро оформим',
+      hot: true,
+      run: ()=>replyFast(cid)
+    });
+  }
+
+  actions.push({
+    id:'no',
+    text:'❌ Нет',
+    hot: stock===0,
+    run: ()=>replyNoStock(cid)
+  });
+
+  actions.push({
+    id:'ignore',
+    text:'😶 Игнор',
+    hot: false,
+    run: ()=>{ toast('😶','Игнор','Клиент может уйти'); maybeClientLeaves(cid); }
+  });
+
+  for(const a of actions){
+    const b = document.createElement('button');
+    b.className = 'btnGhost' + (a.hot ? ' hot' : '');
+    b.textContent = a.text;
+    b.addEventListener('click', ()=>{
+      a.run();
+      renderChats();
+      if(screens.dialog.classList.contains('active')) renderDialog();
+      save();
+    });
+    quickBar.appendChild(b);
+  }
+}
+
+function maybeClientLeaves(cid){
+  // small chance client leaves -> rep down
+  if(Math.random()<0.22){
+    S.rep = clamp(S.rep - 2, 0, 100);
+    addIncoming(cid, 'Ладно, неактуально. Пока.', true);
+    logEvent('🚪 Клиент ушёл из-за игнора');
+    tickTop();
+  }
+}
+
+function replyStock(cid){
+  addOutgoing(cid, "Сейчас проверю склад.");
+  const count = invCount();
+  addIncoming(cid, `На складе сейчас ${count} ед.`, true);
+  logEvent(`📦 Проверка склада • ${count} ед.`);
+}
+
+function replyNoStock(cid){
+  addOutgoing(cid, "Пока нет в наличии.");
+  addIncoming(cid, "Ок. Если появится — напиши.", true);
+  S.rep = clamp(S.rep - 1, 0, 100);
+  logEvent("❌ Ответ: нет в наличии");
+  tickTop();
+}
+
+function replyDelivery(cid){
+  addOutgoing(cid, "Доставка сегодня, быстро. Могу оформить сразу.");
+  S.rep = clamp(S.rep + 1, 0, 100);
+  addIncoming(cid, "Ок. Цена?", false);
+  logEvent("🕒 Ответ: доставка сегодня");
+  tickTop();
+}
+
+function replyFast(cid){
+  addOutgoing(cid, "Оформим быстро: сегодня/завтра. Скажи что именно нужно — подберу лучший вариант.");
+  S.rep = clamp(S.rep + 1, 0, 100);
+  addIncoming(cid, "Сколько будет по цене?", false);
+  logEvent("⚡ Ответ: быстро оформим");
+  tickTop();
+}
+
+/* Offer logic with styles: normal/discount */
+function offerAndMaybeSell(cid, {style='normal'}={}){
   if(!hasAnyStock()){
-    addIncoming(cid, 'Сейчас пусто на складе 😶 Зайди в 🛒 Магазин и закупи товар.', false);
+    addIncoming(cid, 'Сейчас пусто на складе 😶 Зайди в 🛒 Магазин и закупи товар.', true);
     toast('📦','Склад пуст','Закупись в магазине');
     return;
   }
 
-  // pick an item that exists
+  const c = CLIENTS.find(x=>x.id===cid);
   const availableIds = Object.keys(S.inv).filter(id => (S.inv[id]||0)>0);
   const pid = pick(availableIds);
   const p = PRODUCTS.find(x=>x.id===pid);
   const buy = S.spot[pid];
-  const sell = sellPrice(pid);
 
-  const chance = dealChanceBase();
-  const vip = (CLIENTS.find(x=>x.id===cid)?.vip) ? 0.12 : 0; // vip boosts chance
-  const finalChance = clamp(chance + vip, 0.08, 0.95);
+  let sell = sellPrice(pid);
+  let discPct = 0;
 
-  addIncoming(cid, `Есть ${p.name}. Моя цена: ${fmt(sell)}.\n(закуп: ${fmt(buy)} • наценка ${S.markup}%)`, false);
+  if(style==='discount'){
+    discPct = rnd(8,15);
+    sell = Math.max(1000, Math.round(sell * (1 - discPct/100)));
+  }
 
-  // Attempt sale after a beat
+  if(style==='discount'){
+    addOutgoing(cid, `Могу сделать скидку: ${p.name} за ${fmt(sell)} (−${discPct}%).`);
+  }else{
+    addOutgoing(cid, `Есть ${p.name}. Моя цена: ${fmt(sell)}.`);
+  }
+
+  // chance calc
+  const baseChance = dealChanceBase();
+  const vipBoost = c && c.vip ? 0.12 : 0;
+  const discBoost = style==='discount' ? 0.12 : 0;
+  const fastBoost = (c && c.mood.includes('быстро')) ? 0.03 : 0;
+  const finalChance = clamp(baseChance + vipBoost + discBoost + fastBoost, 0.08, 0.97);
+
+  // sale attempt
   setTimeout(()=>{
     const willBuy = Math.random() < finalChance;
     if(!willBuy){
-      // negotiate / refuse
       S.rep = clamp(S.rep - rnd(1,2), 0, 100);
-      const neg = [
+      addIncoming(cid, pick([
         'Дорого. Я пас.',
         'Можешь скинуть цену? Иначе не беру.',
         'Нашёл дешевле.',
-        'Бро, не вариант за такую.',
-      ];
-      addIncoming(cid, pick(neg), true);
+        'Не вариант…',
+      ]), true);
       toast('❌','Сделка сорвалась',`Шанс был ${Math.round(finalChance*100)}%`);
-      save();
-      tickTop();
-      if(S.activeClientId===cid) renderDialog();
+      logEvent(`❌ Отказ: ${p.name} (шанс ${Math.round(finalChance*100)}%)`);
+      save(); tickTop();
       return;
     }
 
-    // If buy, possible cancel risk
-    const cancel = Math.random() < cancelChance();
+    // cancellation
+    let cancelP = cancelChance();
+    if(style==='discount') cancelP = clamp(cancelP - 0.05, 0.02, 0.20);
+
+    const cancel = Math.random() < cancelP;
     if(cancel){
       S.cancels++;
       S.rep = clamp(S.rep - rnd(2,4), 0, 100);
-      const can = [
-        'Сорян, отмена. Передумал.',
-        'Неактуально, отменяю.',
-        'Ладно, пока не надо.',
-      ];
-      addIncoming(cid, pick(can), true);
-      logEvent(`❌ Отмена сделки: ${p.name}`);
+      addIncoming(cid, pick(['Сорян, отмена.','Передумал, не надо.','Неактуально, отменяю.']), true);
+      logEvent(`❌ Отмена: ${p.name}`);
       toast('⚠️','Отмена','Репутация упала');
-      save();
-      tickTop();
-      if(S.activeClientId===cid) renderDialog();
+      save(); tickTop();
       return;
     }
 
-    // Complete sale
+    // complete sale
     S.inv[pid] = (S.inv[pid]||0) - 1;
     if(S.inv[pid] <= 0) delete S.inv[pid];
 
@@ -1306,14 +1419,14 @@ function offerAndMaybeSell(cid){
     S.sales++;
 
     const profit = sell - buy;
-    S.rep = clamp(S.rep + (profit>0 ? rnd(1,3) : 1), 0, 100);
 
-    // xp
+    S.rep = clamp(S.rep + (style==='discount' ? rnd(1,2) : rnd(1,3)), 0, 100);
+
     S.xp += Math.max(10, Math.round(profit/20000));
     S.level = levelFromXp(S.xp);
 
     addIncoming(cid, `Беру 🤝 Перевёл ${fmt(sell)}.`, true);
-    addIncoming(cid, `Скинь данные/доставку.`, false);
+    addIncoming(cid, `Куда доставить/как забрать?`, false);
 
     logEvent(`✅ Продажа: ${p.name} • +${fmt(sell)} • профит ~ ${fmt(profit)}`);
     toast('✅','Продано',`${p.name} • +${fmt(sell)}`);
@@ -1321,7 +1434,7 @@ function offerAndMaybeSell(cid){
     save();
     tickTop();
     stockMini.textContent = invCount();
-    if(screens.dialog.classList.contains('active') && S.activeClientId===cid) renderDialog();
+    if(S.activeClientId===cid) renderDialog();
   }, rnd(650, 1100));
 }
 
@@ -1343,24 +1456,21 @@ markup.addEventListener('input', ()=>{
 });
 
 btnAutoPrice.addEventListener('click', ()=>{
-  // simple smart: if rep low -> reduce markup, else moderate
   if(S.rep < 40) S.markup = 22;
   else if(S.rep < 60) S.markup = 35;
   else S.markup = 48;
   markup.value = S.markup;
   save();
   renderPrice();
-  toast('🧠','Авто-прайс',`Наценка выставлена: ${S.markup}%`);
+  toast('🧠','Авто-прайс',`Наценка: ${S.markup}%`);
 });
 
 function renderPrice(quiet=false){
   tickTop();
   markupLabel.textContent = `${S.markup}%`;
-
   const chance = dealChanceBase();
   dealChanceEl.textContent = `${Math.round(chance*100)}%`;
 
-  // avg profit based on current inventory buy prices
   const ids = Object.keys(S.inv);
   let avg = 0;
   if(ids.length){
@@ -1374,7 +1484,6 @@ function renderPrice(quiet=false){
     }
     avg = cnt? (sum/cnt) : 0;
   }else{
-    // approximate average by a typical product
     const p = pick(PRODUCTS);
     avg = sellPrice(p.id) - S.spot[p.id];
   }
@@ -1392,22 +1501,12 @@ const whCount = document.getElementById('whCount');
 const whTurn = document.getElementById('whTurn');
 const btnClearLogs = document.getElementById('btnClearLogs');
 
-S.logs = S.logs || [];
-save();
-
 btnClearLogs.addEventListener('click', ()=>{
   S.logs = [];
   save();
   renderWarehouse();
   toast('🧹','Лог очищен');
 });
-
-function logEvent(text){
-  S.logs = S.logs || [];
-  S.logs.unshift({ts: now(), text});
-  S.logs = S.logs.slice(0, 30);
-  save();
-}
 
 function renderWarehouse(){
   tickTop();
@@ -1512,7 +1611,6 @@ function renderShop(){
         <button class="btnGhost" style="padding:10px 12px" data-buy3="${p.id}">x3</button>
       </div>
     `;
-
     el.querySelector('[data-buy]').addEventListener('click', ()=>buyProduct(p.id, 1));
     el.querySelector('[data-buy3]').addEventListener('click', ()=>buyProduct(p.id, 3));
     shopList.appendChild(el);
@@ -1533,6 +1631,9 @@ function buyProduct(pid, qty){
   save();
   tickTop();
   toast('🛒','Закуплено',`x${qty} • -${fmt(cost)}`);
+
+  // nudge: clients may message after you restock
+  if(Math.random()<0.35) spawnIncoming(1);
 }
 
 /* ===========================
@@ -1542,19 +1643,19 @@ const btnReset = document.getElementById('btnReset');
 btnReset.addEventListener('click', ()=>{
   if(!confirm('Сбросить прогресс?')) return;
   localStorage.removeItem(KEY);
-  S = JSON.parse(JSON.stringify(defaultState));
+  S = structuredClone(defaultState);
   ensureInit();
-  toast('♻️','Сброшено','Перезапусти страницу');
+  toast('♻️','Сброшено','Перезагрузка...');
   location.reload();
 });
 
 function renderProfile(){
   tickTop();
   document.getElementById('lvl').textContent = S.level;
+  document.getElementById('xp').textContent = S.xp;
   document.getElementById('rep').textContent = S.rep;
   document.getElementById('sales').textContent = S.sales;
   document.getElementById('cancels').textContent = S.cancels;
-  document.getElementById('vipCount').textContent = CLIENTS.filter(c=>c.vip).length;
 }
 
 /* ===========================
@@ -1570,7 +1671,6 @@ function spawnIncoming(n=1){
 
 /* periodic client messages */
 setInterval(()=>{
-  // 35% chance every 18s to receive 1 new message
   if(Math.random() < 0.35){
     spawnIncoming(1);
     if(screens.chats.classList.contains('active')) renderChats();
@@ -1582,7 +1682,6 @@ setInterval(()=>{
 /* ===========================
    Boot
 =========================== */
-// seed a couple of chats
 if(Object.values(S.chats).every(arr=>arr.length===0)){
   addIncoming('a', 'Привет. Есть что-нибудь из техники? Цена?', true);
   addIncoming('d', 'Мне нужен девайс срочно. Что есть в наличии?', true);
@@ -1592,15 +1691,8 @@ renderPrice(true);
 renderShop();
 renderWarehouse();
 renderProfile();
-
 document.getElementById('stockMini').textContent = invCount();
-
-/* ===========================
-   Small extras
-=========================== */
-document.getElementById('btnRefresh').addEventListener('click', ()=>{});
-document.getElementById('btnReset').addEventListener('click', ()=>{});
-
+tickTop();
 </script>
 </body>
   </html>
