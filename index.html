@@ -1,988 +1,217 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
-  <title>Auto Arena Survivor (2D)</title>
-  <style>
-    html,body{margin:0;height:100%;background:#0b0f14;overflow:hidden;touch-action:none;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    canvas{display:block;width:100vw;height:100vh}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Dealer</title>
+<style>
+body{
+margin:0;
+font-family:Arial, sans-serif;
+background:#0e1621;
+color:white;
+display:flex;
+height:100vh;
+}
 
-    /* HUD like screenshots */
-    .hudTop{
-      position:fixed;left:0;right:0;top:0;z-index:10;
-      pointer-events:none;
-    }
-    .hudBar{
-      margin:10px 10px 0 10px;
-      border-radius:14px;
-      background:linear-gradient(180deg, rgba(30,36,46,.92), rgba(20,24,32,.82));
-      border:1px solid rgba(255,255,255,.08);
-      box-shadow:0 16px 40px rgba(0,0,0,.35);
-      padding:10px 10px 10px 10px;
-    }
-    .hudRow{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      color:rgba(255,255,255,.92);
-      font-weight:800;
-    }
-    .hudLeft, .hudRight{display:flex;align-items:center;gap:10px}
-    .pill{
-      display:flex;align-items:center;gap:8px;
-      padding:8px 10px;border-radius:12px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.08);
-      font-size:13px;
-    }
-    .icon{
-      width:16px;height:16px;border-radius:4px;
-      background:rgba(255,255,255,.15);
-      display:inline-flex;align-items:center;justify-content:center;
-      font-size:12px;
-    }
-    .time{
-      font-size:18px;letter-spacing:.5px;
-      padding:8px 12px;border-radius:12px;
-      background:rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.08);
-      min-width:84px;text-align:center;
-    }
+.sidebar{
+width:30%;
+background:#17212b;
+overflow-y:auto;
+border-right:1px solid #222;
+}
 
-    .xpWrap{
-      margin-top:10px;
-      height:16px;border-radius:12px;
-      background:rgba(0,0,0,.25);
-      border:1px solid rgba(255,255,255,.08);
-      overflow:hidden;
-    }
-    .xpFill{
-      height:100%;
-      width:30%;
-      background:linear-gradient(90deg, #27d76a, #19b655);
-      box-shadow:0 0 18px rgba(39,215,106,.25) inset;
-    }
-    .xpText{
-      margin-top:8px;
-      display:flex;justify-content:space-between;align-items:center;
-      color:rgba(255,255,255,.78);
-      font-weight:800;font-size:12px;
-    }
+.chat-item{
+padding:15px;
+border-bottom:1px solid #222;
+cursor:pointer;
+}
+.chat-item:hover{
+background:#1f2c38;
+}
 
-    /* Boss banner */
-    .banner{
-      position:fixed;left:0;right:0;top:120px;z-index:11;
-      display:none;justify-content:center;
-      pointer-events:none;
-    }
-    .bannerInner{
-      padding:10px 14px;border-radius:14px;
-      background:rgba(255,71,87,.20);
-      border:1px solid rgba(255,71,87,.35);
-      color:#fff;font-weight:900;
-      box-shadow:0 18px 50px rgba(0,0,0,.35);
-      text-transform:uppercase;
-      letter-spacing:.8px;
-    }
+.main{
+flex:1;
+display:flex;
+flex-direction:column;
+}
 
-    /* Upgrade overlay (3 cards + reroll) */
-    .overlay{
-      position:fixed;inset:0;z-index:20;
-      display:none;align-items:center;justify-content:center;
-      background:rgba(0,0,0,.55);
-      backdrop-filter: blur(8px);
-      pointer-events:auto;
-    }
-    .overlayPanel{
-      width:min(720px, calc(100vw - 22px));
-      border-radius:18px;
-      background:linear-gradient(180deg, rgba(24,28,38,.92), rgba(18,22,30,.88));
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow:0 26px 80px rgba(0,0,0,.5);
-      overflow:hidden;
-    }
-    .overlayHeader{
-      padding:14px 14px;
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:1000;font-size:16px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .cards{
-      padding:14px;
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
-    .card{
-      border-radius:16px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      padding:12px;
-      color:#fff;
-      box-shadow:0 14px 40px rgba(0,0,0,.25);
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .card:active{ transform: translateY(1px); }
-    .cardTop{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      margin-bottom:10px;
-      font-weight:1000;
-    }
-    .badge{
-      font-size:11px;
-      padding:4px 8px;border-radius:999px;
-      background:rgba(39,215,106,.16);
-      border:1px solid rgba(39,215,106,.22);
-      color:rgba(255,255,255,.95);
-    }
-    .cardIcon{
-      width:44px;height:44px;border-radius:14px;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.10);
-      display:flex;align-items:center;justify-content:center;
-      font-size:18px;
-      margin-bottom:10px;
-    }
-    .cardDesc{
-      font-size:12px;line-height:1.25;
-      color:rgba(255,255,255,.78);
-      min-height:44px;
-    }
-    .stars{ margin-top:10px; color:rgba(255,255,255,.5); font-size:12px; letter-spacing:1px; }
-    .overlayFooter{
-      padding:14px;
-      display:flex;justify-content:center;
-      border-top:1px solid rgba(255,255,255,.08);
-    }
-    .reroll{
-      padding:12px 18px;border-radius:14px;
-      background:linear-gradient(180deg, rgba(255,177,0,.95), rgba(255,150,0,.92));
-      border:1px solid rgba(255,255,255,.25);
-      font-weight:1000;color:#2b1f00;
-      box-shadow:0 16px 40px rgba(0,0,0,.25);
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .reroll:active{ transform: translateY(1px); }
+.topbar{
+background:#17212b;
+padding:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
+}
 
-    /* (Optional) small hint */
-    .hint{
-      position:fixed;left:10px;bottom:10px;z-index:9;
-      color:rgba(255,255,255,.55);
-      font-weight:800;font-size:12px;
-      pointer-events:none;
-    }
-  </style>
+.chat{
+flex:1;
+padding:15px;
+overflow-y:auto;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.msg{
+max-width:70%;
+padding:10px 14px;
+border-radius:16px;
+}
+
+.client{
+background:#1f2c38;
+align-self:flex-start;
+}
+
+.me{
+background:#2b5278;
+align-self:flex-end;
+}
+
+.inputbar{
+display:flex;
+padding:10px;
+background:#17212b;
+gap:10px;
+}
+
+input{
+flex:1;
+padding:10px;
+border-radius:8px;
+border:none;
+outline:none;
+background:#1f2c38;
+color:white;
+}
+
+button{
+padding:10px 14px;
+border:none;
+border-radius:8px;
+background:#2b5278;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#3a6a9c;
+}
+
+.price-panel{
+position:fixed;
+right:0;
+top:0;
+width:200px;
+height:100%;
+background:#111b26;
+border-left:1px solid #222;
+padding:15px;
+}
+
+.stat{
+margin-bottom:10px;
+font-size:14px;
+}
+</style>
 </head>
 <body>
-  <div class="hudTop">
-    <div class="hudBar">
-      <div class="hudRow">
-        <div class="hudLeft">
-          <div class="pill"><span class="icon">⏸</span> <span id="lblStage">STAGE 1</span></div>
-          <div class="time" id="lblTime">00:00</div>
-        </div>
-        <div class="hudRight">
-          <div class="pill"><span class="icon">🪙</span> <span id="lblCoins">0</span></div>
-          <div class="pill"><span class="icon">💎</span> <span id="lblGems">0</span></div>
-          <div class="pill"><span class="icon">LV</span> <span id="lblLvl">1</span></div>
-        </div>
-      </div>
 
-      <div class="xpWrap"><div class="xpFill" id="xpFill"></div></div>
-      <div class="xpText">
-        <div>HP <span id="lblHp">100/100</span></div>
-        <div>WAVE <span id="lblWave">1</span></div>
-      </div>
-    </div>
-  </div>
+<div class="sidebar" id="clients"></div>
 
-  <div class="banner" id="bossBanner"><div class="bannerInner">BOSS ASSAULT</div></div>
+<div class="main">
+<div class="topbar">
+<div>💬 Shadow Dealer</div>
+<div id="balance">Balance: $1000</div>
+</div>
 
-  <div class="overlay" id="upgradeOverlay">
-    <div class="overlayPanel">
-      <div class="overlayHeader">ВЫБОР НАВЫКА</div>
-      <div class="cards" id="cards"></div>
-      <div class="overlayFooter">
-        <div class="reroll" id="btnReroll">ОБНОВИТЬ</div>
-      </div>
-    </div>
-  </div>
+<div class="chat" id="chat"></div>
 
-  <div class="hint">Левый джойстик — движение • Стреляет сам • Апгрейды при LEVEL UP</div>
-  <canvas id="c"></canvas>
+<div class="inputbar">
+<input id="reply" placeholder="Reply...">
+<button onclick="sendReply()">Send</button>
+</div>
+</div>
+
+<div class="price-panel">
+<h3>📦 Price</h3>
+<div class="stat">Your price:</div>
+<input type="number" id="price" value="500">
+<br><br>
+<div class="stat">Reputation: <span id="rep">50</span></div>
+<div class="stat">Clients satisfied: <span id="sales">0</span></div>
+</div>
 
 <script>
-(() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
-  ctx.imageSmoothingEnabled = true;
-
-  // HUD refs
-  const lblStage=document.getElementById('lblStage');
-  const lblTime=document.getElementById('lblTime');
-  const lblCoins=document.getElementById('lblCoins');
-  const lblGems=document.getElementById('lblGems');
-  const lblLvl=document.getElementById('lblLvl');
-  const lblHp=document.getElementById('lblHp');
-  const lblWave=document.getElementById('lblWave');
-  const xpFill=document.getElementById('xpFill');
-  const bossBanner=document.getElementById('bossBanner');
-
-  const overlay=document.getElementById('upgradeOverlay');
-  const cardsEl=document.getElementById('cards');
-  const btnReroll=document.getElementById('btnReroll');
-
-  // --------- Crisp scaling
-  let DPR=1, W=0, H=0;
-  function resize(){
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-    W = Math.floor(window.innerWidth);
-    H = Math.floor(window.innerHeight);
-    canvas.width = Math.floor(W * DPR);
-    canvas.height = Math.floor(H * DPR);
-    canvas.style.width = W+'px';
-    canvas.style.height = H+'px';
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-  }
-  window.addEventListener('resize', resize, {passive:true});
-  resize();
-
-  // --------- Utils
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>a+Math.random()*(b-a);
-  const irand=(a,b)=>Math.floor(rand(a,b+1));
-  const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
-
-  // --------- World / camera (infinite map)
-  const cam = { x: 0, y: 0 }; // world coords center
-  function toScreen(wx, wy){ return { x: (wx - cam.x) + W/2, y: (wy - cam.y) + H/2 }; }
-  function toWorld(sx, sy){ return { x: cam.x + (sx - W/2), y: cam.y + (sy - H/2) }; }
-
-  // --------- Content tables (foundation)
-  const UPGRADE_POOL = [
-    { id:'dmg',      name:'Урон +',      icon:'🔫', rarity:'COMMON',  desc:'Увеличивает урон оружия.', stars:1, apply:s=>s.player.damage*=1.15 },
-    { id:'firerate', name:'Скорость +',  icon:'⚡', rarity:'COMMON',  desc:'Стреляет быстрее.',        stars:1, apply:s=>s.player.fireRate*=1.12 },
-    { id:'hp',       name:'HP +',        icon:'❤️', rarity:'COMMON',  desc:'Больше здоровья.',        stars:1, apply:s=>{ s.player.maxHp+=20; s.player.hp=Math.min(s.player.maxHp, s.player.hp+20);} },
-    { id:'ms',       name:'Скорость бега',icon:'👟',rarity:'COMMON',  desc:'Быстрее двигаешься.',     stars:1, apply:s=>s.player.moveSpeed*=1.10 },
-    { id:'magnet',   name:'Магнит',      icon:'🧲', rarity:'COMMON',  desc:'XP притягивается сильнее.',stars:1, apply:s=>s.player.magnet+=24 },
-    { id:'pierce',   name:'Пробитие',    icon:'🧷', rarity:'RARE',    desc:'Пули пробивают врагов.',  stars:2, apply:s=>s.player.pierce+=1 },
-    { id:'proj',     name:'+Снаряд',     icon:'➕', rarity:'RARE',    desc:'Больше снарядов за выстрел.',stars:2, apply:s=>s.player.projectiles+=1 },
-    { id:'crit',     name:'Крит шанс',   icon:'🎯', rarity:'RARE',    desc:'Иногда наносишь крит.',   stars:2, apply:s=>s.player.critChance=Math.min(0.45, s.player.critChance+0.05) },
-    { id:'critd',    name:'Крит урон',   icon:'💥', rarity:'RARE',    desc:'Криты сильнее.',          stars:2, apply:s=>s.player.critMult+=0.25 },
-    { id:'aura',     name:'Шок-аура',    icon:'🌀', rarity:'EPIC',    desc:'Вокруг урон по площади.', stars:3, apply:s=>s.player.auraLevel+=1 },
-    { id:'regen',    name:'Реген',       icon:'🍀', rarity:'EPIC',    desc:'Понемногу лечишься.',     stars:3, apply:s=>s.player.regen+=1.0 },
-  ];
-
-  function pickUpgrades(n=3){
-    // basic: shuffle unique
-    const pool = [...UPGRADE_POOL];
-    for (let i=pool.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [pool[i],pool[j]]=[pool[j],pool[i]];
-    }
-    return pool.slice(0,n);
-  }
-
-  // --------- Game state
-  const state = {
-    time: 0, // seconds
-    stage: 1,
-    wave: 1,
-    paused: false,
-    coins: 0,
-    gems: 0,
-    nextBossAt: 60, // seconds (boss every 60s in this stage)
-    bossAlive: false,
-    // scaling
-    difficulty: 1,
-    // entities
-    player: {
-      x: 0, y: 0,
-      r: 14,
-      moveSpeed: 230,
-      hp: 100, maxHp: 100,
-      level: 1,
-      xp: 0,
-      xpNeed: 60,
-      // weapon
-      damage: 14,
-      fireRate: 6,
-      shotCooldown: 0,
-      range: 520,
-      bulletSpeed: 720,
-      projectiles: 1,
-      pierce: 0,
-      critChance: 0.08,
-      critMult: 1.6,
-      // utility
-      magnet: 72,
-      // aura
-      auraLevel: 0,
-      regen: 0,
-    },
-    joy: { active:false, id:null, baseX:0, baseY:0, dx:0, dy:0, x:0, y:0 },
-    enemies: [],
-    bullets: [],
-    xpGems: [],
-    floatText: [],
-    particles: [],
-  };
-
-  // --------- Joystick (left side, like screenshot)
-  function joyDown(p){
-    // only left half
-    if (p.clientX > W*0.58) return;
-    state.joy.active = true;
-    state.joy.id = p.pointerId;
-    state.joy.baseX = p.clientX;
-    state.joy.baseY = p.clientY;
-    state.joy.dx = 0; state.joy.dy = 0;
-    state.joy.x = p.clientX; state.joy.y = p.clientY;
-  }
-  function joyMove(p){
-    if (!state.joy.active || p.pointerId !== state.joy.id) return;
-    state.joy.dx = p.clientX - state.joy.baseX;
-    state.joy.dy = p.clientY - state.joy.baseY;
-    state.joy.x = p.clientX; state.joy.y = p.clientY;
-    const max = 68;
-    const len = Math.hypot(state.joy.dx, state.joy.dy);
-    if (len > max){
-      state.joy.dx = state.joy.dx/len * max;
-      state.joy.dy = state.joy.dy/len * max;
-    }
-  }
-  function joyUp(p){
-    if (p.pointerId !== state.joy.id) return;
-    state.joy.active = false;
-    state.joy.id = null;
-    state.joy.dx = 0; state.joy.dy = 0;
-  }
-
-  canvas.addEventListener('pointerdown', (e)=>{ if(!state.paused) joyDown(e); }, {passive:true});
-  canvas.addEventListener('pointermove', (e)=>{ if(!state.paused) joyMove(e); }, {passive:true});
-  canvas.addEventListener('pointerup', (e)=>joyUp(e), {passive:true});
-  canvas.addEventListener('pointercancel', (e)=>joyUp(e), {passive:true});
-
-  // --------- Spawning
-  function spawnEnemy(type='grunt'){
-    // spawn outside view (world coords)
-    const side = irand(0,3);
-    const margin = 420;
-    let x=cam.x, y=cam.y;
-    const w2=W/2, h2=H/2;
-    if (side===0){ x = cam.x + rand(-w2, w2); y = cam.y - h2 - margin; }
-    if (side===1){ x = cam.x + rand(-w2, w2); y = cam.y + h2 + margin; }
-    if (side===2){ x = cam.x - w2 - margin; y = cam.y + rand(-h2, h2); }
-    if (side===3){ x = cam.x + w2 + margin; y = cam.y + rand(-h2, h2); }
-
-    const hp = 40 * state.difficulty;
-    const spd = 85 + state.difficulty*6;
-
-    state.enemies.push({
-      x,y,
-      r: 16,
-      hpMax: hp, hp: hp,
-      spd: spd,
-      dmg: 12,
-      type,
-      boss:false
-    });
-  }
-
-  function spawnBoss(){
-    state.bossAlive = true;
-    bossBanner.style.display = 'flex';
-    setTimeout(()=> bossBanner.style.display='none', 1400);
-
-    const side = irand(0,3);
-    const margin = 520;
-    let x=cam.x, y=cam.y;
-    const w2=W/2, h2=H/2;
-    if (side===0){ x = cam.x + rand(-w2, w2); y = cam.y - h2 - margin; }
-    if (side===1){ x = cam.x + rand(-w2, w2); y = cam.y + h2 + margin; }
-    if (side===2){ x = cam.x - w2 - margin; y = cam.y + rand(-h2, h2); }
-    if (side===3){ x = cam.x + w2 + margin; y = cam.y + rand(-h2, h2); }
-
-    const hp = 1200 * state.difficulty;
-    state.enemies.push({
-      x,y,
-      r: 52,
-      hpMax: hp, hp: hp,
-      spd: 62,
-      dmg: 22,
-      type:'boss',
-      boss:true
-    });
-  }
-
-  // initial enemies
-  for(let i=0;i<8;i++) spawnEnemy();
-
-  // --------- Combat
-  function nearestEnemy(){
-    let best=null, bestD=1e18;
-    for (const e of state.enemies){
-      const d = dist(state.player.x, state.player.y, e.x, e.y);
-      if (d < bestD){ bestD=d; best=e; }
-    }
-    return best;
-  }
-
-  function shootAt(target){
-    const p=state.player;
-    const ang = Math.atan2(target.y - p.y, target.x - p.x);
-
-    const count = p.projectiles;
-    for(let i=0;i<count;i++){
-      const spread = (count>1) ? (i-(count-1)/2)*0.10 : 0;
-      const a = ang + spread;
-
-      state.bullets.push({
-        x:p.x, y:p.y,
-        vx:Math.cos(a)*p.bulletSpeed,
-        vy:Math.sin(a)*p.bulletSpeed,
-        life: 1.2,
-        dmg: p.damage,
-        pierce: p.pierce,
-      });
-    }
-
-    // tiny muzzle particles
-    for(let k=0;k<4;k++){
-      state.particles.push({
-        x:p.x + Math.cos(ang)*14,
-        y:p.y + Math.sin(ang)*14,
-        vx:rand(-60,60),
-        vy:rand(-60,60),
-        life:rand(0.10,0.18),
-        a:0.35
-      });
-    }
-  }
-
-  function awardXP(x,y,amount=12){
-    for(let i=0;i<Math.min(6, Math.floor(amount/8)+1);i++){
-      state.xpGems.push({
-        x: x + rand(-8,8),
-        y: y + rand(-8,8),
-        vx: rand(-30,30),
-        vy: rand(-30,30),
-        value: 6,
-      });
-    }
-  }
-
-  function addFloat(x,y,text,color='rgba(255,255,255,.9)'){
-    state.floatText.push({x,y,text,life:0.75,vy:-32,color});
-  }
-
-  function levelUp(){
-    state.player.level += 1;
-    state.player.xp -= state.player.xpNeed;
-    state.player.xpNeed = Math.floor(state.player.xpNeed * 1.18 + 10);
-    openUpgrades();
-  }
-
-  // --------- Upgrade UI (3 cards + reroll)
-  let currentChoices = [];
-  function openUpgrades(){
-    state.paused = true;
-    overlay.style.display = 'flex';
-    rollCards(false);
-  }
-  function rollCards(cost){
-    // cost can be false or number
-    if (typeof cost === 'number'){
-      if (state.coins < cost) return;
-      state.coins -= cost;
-    }
-    currentChoices = pickUpgrades(3);
-    renderCards();
-    syncHud();
-  }
-  function renderCards(){
-    cardsEl.innerHTML = '';
-    for (const u of currentChoices){
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `
-        <div class="cardTop">
-          <div>${u.name}</div>
-          <div class="badge">${u.rarity}</div>
-        </div>
-        <div class="cardIcon">${u.icon}</div>
-        <div class="cardDesc">${u.desc}</div>
-        <div class="stars">${'★'.repeat(u.stars)}${'☆'.repeat(5-u.stars)}</div>
-      `;
-      div.onclick = () => {
-        u.apply(state);
-        overlay.style.display = 'none';
-        state.paused = false;
-        // little reward feel
-        addFloat(state.player.x, state.player.y-22, `+ ${u.name}`, 'rgba(39,215,106,.95)');
-        syncHud();
-      };
-      cardsEl.appendChild(div);
-    }
-  }
-  btnReroll.addEventListener('click', ()=> rollCards(40));
-
-  // --------- Map rendering (infinite tile grid + roads)
-  function drawMap(){
-    // base
-    ctx.fillStyle = '#222833';
-    ctx.fillRect(0,0,W,H);
-
-    // tile size in world
-    const tile = 84;
-    const left = cam.x - W/2 - tile;
-    const right= cam.x + W/2 + tile;
-    const top  = cam.y - H/2 - tile;
-    const bot  = cam.y + H/2 + tile;
-
-    const startX = Math.floor(left / tile) * tile;
-    const startY = Math.floor(top  / tile) * tile;
-
-    // roads: simple pseudo pattern
-    // use world coords to choose darker strips
-    for(let y=startY; y<bot; y+=tile){
-      for(let x=startX; x<right; x+=tile){
-        const sx = (x - cam.x) + W/2;
-        const sy = (y - cam.y) + H/2;
-
-        const gx = Math.floor(x/tile);
-        const gy = Math.floor(y/tile);
-
-        // pavement
-        const road = ((gx % 6 === 0) || (gy % 6 === 0));
-        ctx.fillStyle = road ? '#2b3240' : '#252c38';
-        ctx.fillRect(sx, sy, tile, tile);
-
-        // subtle grid lines
-        ctx.strokeStyle = 'rgba(255,255,255,.05)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(sx, sy, tile, tile);
-
-        // road markings
-        if (road){
-          ctx.strokeStyle = 'rgba(255,255,255,.08)';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(sx + tile*0.5, sy + tile*0.15);
-          ctx.lineTo(sx + tile*0.5, sy + tile*0.85);
-          ctx.stroke();
-        }
-      }
-    }
-
-    // vignette edges (mobile feel)
-    const grd = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*0.35, W/2,H/2, Math.min(W,H)*0.75);
-    grd.addColorStop(0,'rgba(0,0,0,0)');
-    grd.addColorStop(1,'rgba(0,0,0,.35)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,W,H);
-  }
-
-  // --------- Drawing entities (more game-like)
-  function drawPlayer(){
-    const p = state.player;
-    const s = toScreen(p.x,p.y);
-
-    // green aura ring
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = 'rgba(39,215,106,.9)';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, 28, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // body
-    ctx.fillStyle = '#e9eef7';
-    ctx.beginPath(); ctx.arc(s.x, s.y, p.r, 0, Math.PI*2); ctx.fill();
-
-    // tiny face visor
-    ctx.fillStyle = '#1b2230';
-    ctx.fillRect(s.x-7, s.y-4, 14, 8);
-
-    // hp small bar under player (like screenshots)
-    const w = 42, h = 6;
-    const hpPct = clamp(p.hp/p.maxHp, 0, 1);
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    roundRect(s.x-w/2, s.y+22, w, h, 5, true);
-    ctx.fillStyle = '#27d76a';
-    roundRect(s.x-w/2, s.y+22, w*hpPct, h, 5, true);
-  }
-
-  function drawEnemy(e){
-    const s = toScreen(e.x,e.y);
-
-    if (e.boss){
-      // boss shadow
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.ellipse(s.x, s.y+e.r*0.65, e.r*0.95, e.r*0.45, 0, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-
-      // boss body
-      ctx.fillStyle = '#ff4757';
-      ctx.beginPath(); ctx.arc(s.x, s.y, e.r, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 0.22;
-      ctx.strokeStyle = 'rgba(255,255,255,.7)';
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(s.x, s.y, e.r, 0, Math.PI*2); ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // boss hp bar on top of boss
-      const pct = clamp(e.hp/e.hpMax,0,1);
-      ctx.fillStyle = 'rgba(0,0,0,.35)';
-      roundRect(s.x-60, s.y-e.r-18, 120, 10, 8, true);
-      ctx.fillStyle = '#ffb100';
-      roundRect(s.x-60, s.y-e.r-18, 120*pct, 10, 8, true);
-    } else {
-      // grunt
-      ctx.globalAlpha = 0.22;
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.ellipse(s.x, s.y+10, e.r*0.9, e.r*0.45, 0, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-
-      ctx.fillStyle = '#2ed573';
-      ctx.beginPath(); ctx.arc(s.x, s.y, e.r, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 0.20;
-      ctx.strokeStyle = 'rgba(255,255,255,.7)';
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(s.x, s.y, e.r, 0, Math.PI*2); ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  function drawBullet(b){
-    const s = toScreen(b.x,b.y);
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(s.x, s.y, 3.8, 0, Math.PI*2); ctx.fill();
-
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = '#7dd3ff';
-    ctx.beginPath(); ctx.arc(s.x, s.y, 10, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawXP(g){
-    const s = toScreen(g.x,g.y);
-    // diamond
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(Math.PI/4);
-    ctx.fillStyle = '#35ff7a';
-    ctx.globalAlpha = 0.9;
-    ctx.fillRect(-5, -5, 10, 10);
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-8, -8, 16, 16);
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawJoystick(){
-    if (!state.joy.active) return;
-    const bx = state.joy.baseX, by = state.joy.baseY;
-    const hx = bx + state.joy.dx, hy = by + state.joy.dy;
-
-    // base ring
-    ctx.globalAlpha = 0.20;
-    ctx.strokeStyle = 'rgba(255,255,255,.85)';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(bx, by, 62, 0, Math.PI*2);
-    ctx.stroke();
-
-    // inner fill
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(bx, by, 62, 0, Math.PI*2);
-    ctx.fill();
-
-    // handle
-    ctx.globalAlpha = 0.20;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(hx, hy, 24, 0, Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  function roundRect(x,y,w,h,r,fill){
-    const rr = Math.min(r, w/2, h/2);
-    ctx.beginPath();
-    ctx.moveTo(x+rr, y);
-    ctx.arcTo(x+w, y, x+w, y+h, rr);
-    ctx.arcTo(x+w, y+h, x, y+h, rr);
-    ctx.arcTo(x, y+h, x, y, rr);
-    ctx.arcTo(x, y, x+w, y, rr);
-    ctx.closePath();
-    if (fill) ctx.fill();
-  }
-
-  // --------- Update / logic
-  function syncHud(){
-    // time
-    const t = Math.floor(state.time);
-    const mm = String(Math.floor(t/60)).padStart(2,'0');
-    const ss = String(t%60).padStart(2,'0');
-    lblTime.textContent = `${mm}:${ss}`;
-
-    lblStage.textContent = `STAGE ${state.stage}`;
-    lblCoins.textContent = String(Math.floor(state.coins));
-    lblGems.textContent = String(Math.floor(state.gems));
-    lblLvl.textContent = String(state.player.level);
-    lblHp.textContent = `${Math.floor(state.player.hp)}/${state.player.maxHp}`;
-    lblWave.textContent = String(state.wave);
-
-    const pct = clamp(state.player.xp / state.player.xpNeed, 0, 1);
-    xpFill.style.width = `${Math.floor(pct*100)}%`;
-  }
-
-  function step(dt){
-    if (state.paused) return;
-
-    state.time += dt;
-
-    // stage timer boss
-    if (!state.bossAlive && state.time >= state.nextBossAt){
-      spawnBoss();
-    }
-
-    // passive regen
-    if (state.player.regen > 0){
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + state.player.regen*dt);
-    }
-
-    // movement by joystick (world coords)
-    if (state.joy.active){
-      const len = Math.hypot(state.joy.dx, state.joy.dy);
-      if (len > 2){
-        const nx = state.joy.dx / len;
-        const ny = state.joy.dy / len;
-        state.player.x += nx * state.player.moveSpeed * dt;
-        state.player.y += ny * state.player.moveSpeed * dt;
-      }
-    }
-
-    // camera follow
-    cam.x = state.player.x;
-    cam.y = state.player.y;
-
-    // auto shoot
-    state.player.shotCooldown -= dt;
-    const target = nearestEnemy();
-    if (target){
-      const d = dist(state.player.x, state.player.y, target.x, target.y);
-      if (d <= state.player.range && state.player.shotCooldown <= 0){
-        state.player.shotCooldown = 1 / state.player.fireRate;
-        shootAt(target);
-      }
-    }
-
-    // bullets
-    for (let i=state.bullets.length-1;i>=0;i--){
-      const b = state.bullets[i];
-      b.x += b.vx*dt;
-      b.y += b.vy*dt;
-      b.life -= dt;
-      if (b.life <= 0){
-        state.bullets.splice(i,1);
-        continue;
-      }
-    }
-
-    // enemies AI + collisions
-    for (let i=state.enemies.length-1;i>=0;i--){
-      const e = state.enemies[i];
-      const ang = Math.atan2(state.player.y - e.y, state.player.x - e.x);
-      e.x += Math.cos(ang) * e.spd * dt;
-      e.y += Math.sin(ang) * e.spd * dt;
-
-      // hit player
-      const d = dist(e.x,e.y,state.player.x,state.player.y);
-      if (d < e.r + state.player.r){
-        state.player.hp -= e.dmg * dt;
-        if (state.player.hp <= 0){
-          // quick restart for now (later: menu)
-          location.reload();
-          return;
-        }
-      }
-
-      // bullet hit
-      for (let j=state.bullets.length-1;j>=0;j--){
-        const b = state.bullets[j];
-        const dd = dist(e.x,e.y,b.x,b.y);
-        if (dd < e.r + 4){
-          // crit
-          const isCrit = Math.random() < state.player.critChance;
-          const dmg = isCrit ? b.dmg * state.player.critMult : b.dmg;
-          e.hp -= dmg;
-
-          if (isCrit) addFloat(e.x, e.y-18, `CRIT ${Math.floor(dmg)}`, 'rgba(255,177,0,.95)');
-
-          // pierce
-          if (b.pierce > 0){
-            b.pierce -= 1;
-          } else {
-            state.bullets.splice(j,1);
-          }
-
-          // death
-          if (e.hp <= 0){
-            awardXP(e.x,e.y, e.boss ? 120 : 20);
-            state.coins += e.boss ? 120 : 6;
-            if (e.boss){
-              state.bossAlive = false;
-              // next stage
-              state.stage += 1;
-              state.wave += 1;
-              state.difficulty = 1 + (state.stage-1)*0.35 + (state.wave-1)*0.10;
-              state.time = 0;
-              state.nextBossAt = 70; // a bit longer next stage
-              addFloat(state.player.x, state.player.y-30, `STAGE ${state.stage}`, 'rgba(125,211,255,.95)');
-            }
-            state.enemies.splice(i,1);
-            break;
-          }
-        }
-      }
-    }
-
-    // XP gems movement + magnet
-    for (let i=state.xpGems.length-1;i>=0;i--){
-      const g = state.xpGems[i];
-      g.x += g.vx*dt; g.y += g.vy*dt;
-      g.vx *= 0.94; g.vy *= 0.94;
-
-      const d = dist(g.x,g.y,state.player.x,state.player.y);
-      if (d < state.player.magnet){
-        const ang = Math.atan2(state.player.y - g.y, state.player.x - g.x);
-        g.vx += Math.cos(ang) * 420 * dt;
-        g.vy += Math.sin(ang) * 420 * dt;
-      }
-      if (d < state.player.r + 10){
-        state.player.xp += g.value;
-        state.xpGems.splice(i,1);
-        // level up check
-        while (state.player.xp >= state.player.xpNeed){
-          levelUp();
-          // pause breaks loop updates, but we can stop here
-          break;
-        }
-      }
-    }
-
-    // aura
-    if (state.player.auraLevel > 0){
-      const radius = 54 + state.player.auraLevel*18;
-      for (const e of state.enemies){
-        const d = dist(e.x,e.y,state.player.x,state.player.y);
-        if (d <= radius){
-          e.hp -= (8 + state.player.auraLevel*5) * dt;
-        }
-      }
-      // aura particles
-      if (Math.random() < 0.22){
-        state.particles.push({ x: state.player.x + rand(-radius,radius), y: state.player.y + rand(-radius,radius), vx: rand(-20,20), vy: rand(-20,20), life: rand(0.18,0.28), a:0.22 });
-      }
-    }
-
-    // spawn enemies continuously (infinite)
-    const targetCount = Math.min(120, 18 + Math.floor(state.wave*2 + state.stage*4));
-    if (state.enemies.length < targetCount && Math.random() < 0.55){
-      spawnEnemy();
-    }
-
-    // wave scaling over time
-    if (!state.bossAlive && Math.floor(state.time) % 18 === 0 && state.time > 1){
-      // slowly increase wave every ~18 sec
-      if (Math.random() < 0.02){
-        state.wave += 1;
-        state.difficulty = 1 + (state.stage-1)*0.35 + (state.wave-1)*0.10;
-      }
-    }
-
-    // float texts
-    for (let i=state.floatText.length-1;i>=0;i--){
-      const f = state.floatText[i];
-      f.y += f.vy*dt;
-      f.life -= dt;
-      if (f.life <= 0) state.floatText.splice(i,1);
-    }
-
-    // particles
-    for (let i=state.particles.length-1;i>=0;i--){
-      const p = state.particles[i];
-      p.x += p.vx*dt; p.y += p.vy*dt;
-      p.life -= dt;
-      if (p.life <= 0) state.particles.splice(i,1);
-    }
-  }
-
-  function draw(){
-    drawMap();
-
-    // bullets
-    for (const b of state.bullets) drawBullet(b);
-
-    // enemies
-    for (const e of state.enemies) drawEnemy(e);
-
-    // xp
-    for (const g of state.xpGems) drawXP(g);
-
-    // particles (world->screen)
-    ctx.globalAlpha = 1;
-    for (const p of state.particles){
-      const s = toScreen(p.x,p.y);
-      ctx.globalAlpha = p.a;
-      ctx.fillStyle = '#7dd3ff';
-      ctx.beginPath(); ctx.arc(s.x,s.y, 10, 0, Math.PI*2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    // player
-    drawPlayer();
-
-    // float text
-    for (const f of state.floatText){
-      const s = toScreen(f.x,f.y);
-      ctx.globalAlpha = clamp(f.life/0.75,0,1);
-      ctx.fillStyle = f.color;
-      ctx.font = '900 14px system-ui,-apple-system,Segoe UI,Roboto,Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(f.text, s.x, s.y);
-    }
-    ctx.globalAlpha = 1;
-
-    // joystick on top
-    drawJoystick();
-  }
-
-  // main loop
-  let last = performance.now();
-  function loop(now){
-    const dt = Math.min(0.033, (now-last)/1000);
-    last = now;
-    step(dt);
-    draw();
-    syncHud();
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  // open first upgrade fast for “game feel” (optional)
-  setTimeout(()=>{ openUpgrades(); }, 700);
-
-})();
+let balance=1000;
+let reputation=50;
+let sales=0;
+let currentClient=null;
+
+const clientList=["Alex","Mark","Sasha","Ivan","Leo","Nikita"];
+const chat=document.getElementById("chat");
+const clients=document.getElementById("clients");
+
+clientList.forEach(name=>{
+const div=document.createElement("div");
+div.className="chat-item";
+div.innerText=name;
+div.onclick=()=>openChat(name);
+clients.appendChild(div);
+});
+
+function openChat(name){
+currentClient=name;
+chat.innerHTML="";
+addMsg("client", name+": Need product. What's your price?");
+}
+
+function addMsg(type,text){
+const div=document.createElement("div");
+div.className="msg "+type;
+div.innerText=text;
+chat.appendChild(div);
+chat.scrollTop=chat.scrollHeight;
+}
+
+function sendReply(){
+if(!currentClient) return;
+
+const price=parseInt(document.getElementById("price").value);
+addMsg("me","Price: $"+price);
+
+const chance=Math.random();
+
+if(price<400){
+balance+=price;
+sales++;
+reputation+=2;
+addMsg("client","Deal. Sending money.");
+}else if(price<700){
+if(chance>0.4){
+balance+=price;
+sales++;
+reputation+=1;
+addMsg("client","Ok fine. Deal.");
+}else{
+reputation-=2;
+addMsg("client","Too expensive. Bye.");
+}
+}else{
+reputation-=5;
+addMsg("client","Scam. Blocking you.");
+}
+
+updateStats();
+}
+
+function updateStats(){
+document.getElementById("balance").innerText="Balance: $"+balance;
+document.getElementById("rep").innerText=reputation;
+document.getElementById("sales").innerText=sales;
+}
 </script>
+
 </body>
-  </html>
+</html>
