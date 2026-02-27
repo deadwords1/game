@@ -1,212 +1,1606 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="ru">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Теневой Маркет</title>
-<style>
-*{box-sizing:border-box}
-body{
-margin:0;
-font-family:-apple-system,BlinkMacSystemFont,Arial;
-background:#0f1720;
-color:white;
-height:100vh;
-display:flex;
-flex-direction:column;
-}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Теневой Маркет</title>
+  <style>
+    :root{
+      --bg0:#070A10;
+      --bg1:#0B1020;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.08);
+      --stroke: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.45);
+      --accent:#8B5CF6;
+      --accent2:#EC4899;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --r16: 16px;
+      --r22: 22px;
+    }
 
-/* ШАПКА */
-.topbar{
-background:#17212b;
-padding:14px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-font-weight:600;
-}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 680px at 20% 10%, rgba(139,92,246,.35), transparent 55%),
+        radial-gradient(900px 560px at 90% 30%, rgba(236,72,153,.28), transparent 55%),
+        radial-gradient(1200px 780px at 60% 120%, rgba(56,189,248,.14), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow:hidden;
+    }
 
-/* ОСНОВА */
-.screen{
-flex:1;
-overflow-y:auto;
-padding:15px;
-}
+    /* Safe area padding for iOS */
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
 
-/* ЧАТ */
-.msg{
-padding:10px 14px;
-border-radius:16px;
-margin-bottom:8px;
-max-width:75%;
-font-size:14px;
-}
-.client{
-background:#1f2c38;
-align-self:flex-start;
-border-bottom-left-radius:4px;
-}
-.me{
-background:#2b5278;
-align-self:flex-end;
-border-bottom-right-radius:4px;
-}
+    /* Top bar */
+    .topbar{
+      height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px 14px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .logo{
+      width:34px;height:34px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(139,92,246,.95), rgba(236,72,153,.95));
+      box-shadow: 0 10px 30px rgba(139,92,246,.35);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+      transform: rotate(25deg) translateX(-60%);
+      animation: shine 3.6s linear infinite;
+    }
+    @keyframes shine{
+      0%{transform: rotate(25deg) translateX(-60%)}
+      50%{transform: rotate(25deg) translateX(60%)}
+      100%{transform: rotate(25deg) translateX(140%)}
+    }
 
-/* ВКЛАДКИ */
-.nav{
-height:60px;
-background:#111b26;
-display:flex;
-justify-content:space-around;
-align-items:center;
-border-top:1px solid #222;
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-}
+    .brandText{min-width:0}
+    .brandText .title{
+      font-weight:800;
+      font-size:14px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brandText .sub{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pillRow{display:flex; gap:8px; align-items:center}
+    .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      box-shadow: 0 12px 34px rgba(0,0,0,.25);
+      font-size:12px;
+      color:var(--muted);
+      user-select:none;
+    }
+    .pill strong{color:var(--text); font-weight:800}
+    .dot{
+      width:8px;height:8px;border-radius:99px;background:var(--good);
+      box-shadow: 0 0 0 4px rgba(34,197,94,.14);
+    }
 
-.nav button{
-background:none;
-border:none;
-color:#aaa;
-font-size:12px;
-display:flex;
-flex-direction:column;
-align-items:center;
-}
+    /* Main panels */
+    .main{
+      flex:1;
+      min-height:0;
+      display:flex;
+      padding: 0 12px 10px;
+    }
+    .panel{
+      width:100%;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r22);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .panel::before{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(900px 380px at 30% -10%, rgba(139,92,246,.16), transparent 60%),
+                  radial-gradient(900px 380px at 90% 20%, rgba(236,72,153,.12), transparent 60%);
+      pointer-events:none;
+    }
 
-.nav button.active{
-color:#4ea1ff;
-}
+    /* Screens */
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      flex-direction:column;
+      min-height:0;
+      animation: pop .22s ease-out;
+    }
+    .screen.active{display:flex}
+    @keyframes pop{
+      from{transform: translateY(6px); opacity:.65}
+      to{transform: translateY(0); opacity:1}
+    }
 
-/* ПРАЙС / ПАНЕЛИ */
-.card{
-background:#17212b;
-padding:15px;
-border-radius:12px;
-margin-bottom:12px;
-}
+    /* Bottom nav */
+    .nav{
+      height:74px;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .navInner{
+      width:100%;
+      display:flex;
+      gap:8px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      padding:8px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .navBtn{
+      flex:1;
+      border:0;
+      background: transparent;
+      color: var(--muted2);
+      border-radius: 16px;
+      padding:10px 8px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, background .16s ease, color .16s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .navBtn:active{transform: scale(.98)}
+    .navBtn.active{
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(139,92,246,.22), rgba(236,72,153,.16));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 26px rgba(139,92,246,.14);
+    }
+    .navIcon{font-size:18px; line-height:18px}
 
-input{
-width:100%;
-padding:10px;
-border-radius:8px;
-border:none;
-background:#1f2c38;
-color:white;
-margin-top:6px;
-}
+    /* Toast */
+    .toast{
+      position:fixed;
+      left:50%;
+      transform: translateX(-50%);
+      bottom: 96px;
+      min-width: 240px;
+      max-width: calc(100vw - 24px);
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(10,12,18,.78);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 50px rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      gap:10px;
+      z-index:999;
+    }
+    .toast.show{display:flex; animation: toastIn .22s ease-out}
+    @keyframes toastIn{
+      from{transform: translateX(-50%) translateY(10px); opacity:.0}
+      to{transform: translateX(-50%) translateY(0); opacity:1}
+    }
+    .toast .ticon{
+      width:26px;height:26px;border-radius:10px;
+      display:grid;place-items:center;
+      background: rgba(255,255,255,.10);
+    }
+    .toast .ttext{font-size:12.5px; color: var(--text)}
+    .toast .ttext small{display:block; color: var(--muted); margin-top:2px}
 
-button.action{
-margin-top:10px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:#2b5278;
-color:white;
-width:100%;
-}
-</style>
+    /* Common UI */
+    .toolbar{
+      position:relative;
+      z-index:2;
+      padding: 12px 12px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(10,12,18,.28);
+      backdrop-filter: blur(10px);
+    }
+    .toolbar .left{
+      display:flex; align-items:center; gap:10px; min-width:0;
+    }
+    .toolbar .h{
+      font-weight:900;
+      font-size:14px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .toolbar .hint{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mini{
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size:12px;
+      user-select:none;
+    }
+    .btn{
+      border:0;
+      background: linear-gradient(135deg, rgba(139,92,246,.9), rgba(236,72,153,.82));
+      color:white;
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      box-shadow: 0 14px 40px rgba(139,92,246,.20);
+      transition: transform .12s ease, filter .12s ease;
+      user-select:none;
+    }
+    .btn:active{transform: scale(.99); filter: brightness(.96)}
+    .btnGhost{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:800;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btnGhost:active{transform: scale(.99)}
+    .row{display:flex; gap:10px; align-items:center}
+
+    .content{
+      position:relative;
+      z-index:2;
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding: 12px;
+    }
+
+    .card{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r16);
+      padding: 12px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.28);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .muted{color: var(--muted)}
+    .small{font-size:12px}
+    .strong{font-weight:900}
+
+    /* Chats screen */
+    .chatList{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .chatItem{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      cursor:pointer;
+      transition: transform .12s ease, background .16s ease, border-color .16s ease;
+      user-select:none;
+    }
+    .chatItem:active{transform: scale(.99)}
+    .chatItem:hover{background: rgba(255,255,255,.065)}
+    .ava{
+      width:42px;height:42px;border-radius:16px;
+      background: linear-gradient(135deg, rgba(56,189,248,.25), rgba(139,92,246,.32));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      box-shadow: 0 14px 30px rgba(0,0,0,.25);
+    }
+    .chatMeta{min-width:0; flex:1}
+    .chatName{
+      font-weight:900;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chatPreview{
+      margin-top:3px;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .badge{
+      min-width: 22px;
+      height:22px;
+      border-radius:999px;
+      padding:0 8px;
+      background: rgba(236,72,153,.16);
+      border:1px solid rgba(236,72,153,.30);
+      color: rgba(255,255,255,.9);
+      font-size:12px;
+      font-weight:900;
+      display:grid;
+      place-items:center;
+    }
+
+    /* Conversation */
+    .convWrap{
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      height:100%;
+    }
+    .conv{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .bubble{
+      max-width: 82%;
+      padding: 10px 12px;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.10);
+      font-size: 13px;
+      line-height: 1.25;
+      box-shadow: 0 12px 30px rgba(0,0,0,.22);
+      animation: bIn .15s ease-out;
+    }
+    @keyframes bIn{
+      from{transform: translateY(6px); opacity:.5}
+      to{transform: translateY(0); opacity:1}
+    }
+    .bubble.me{
+      align-self:flex-end;
+      background: linear-gradient(135deg, rgba(139,92,246,.35), rgba(236,72,153,.22));
+      border-color: rgba(139,92,246,.25);
+    }
+    .bubble.you{
+      align-self:flex-start;
+      background: rgba(255,255,255,.06);
+    }
+    .bubble small{
+      display:block;
+      margin-top:6px;
+      color: var(--muted2);
+      font-size: 11px;
+    }
+
+    .composer{
+      display:flex;
+      gap:10px;
+      padding: 10px 12px 12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(10,12,18,.28);
+      backdrop-filter: blur(10px);
+    }
+    .input{
+      flex:1;
+      padding: 12px 12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--text);
+      outline:none;
+      font-size: 13px;
+    }
+    .send{
+      width:46px;height:46px;
+      border-radius: 18px;
+      border:0;
+      cursor:pointer;
+      background: linear-gradient(135deg, rgba(139,92,246,.92), rgba(236,72,153,.84));
+      box-shadow: 0 14px 40px rgba(139,92,246,.20);
+      display:grid;
+      place-items:center;
+      color:white;
+      font-size:18px;
+      user-select:none;
+      transition: transform .12s ease;
+    }
+    .send:active{transform: scale(.99)}
+
+    /* Shop */
+    .seg{
+      display:flex;
+      gap:8px;
+      padding: 8px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .seg button{
+      border:0;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      white-space:nowrap;
+      user-select:none;
+      transition: transform .12s ease, background .16s ease, color .16s ease;
+    }
+    .seg button:active{transform: scale(.99)}
+    .seg button.active{
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(139,92,246,.22), rgba(236,72,153,.14));
+      border-color: rgba(139,92,246,.24);
+    }
+
+    .prod{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .picon{
+      width:44px;height:44px;border-radius:16px;
+      background: rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-size:18px;
+    }
+    .pmeta{flex:1; min-width:0}
+    .pname{font-weight:900; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .pdesc{margin-top:4px; font-size:12px; color:var(--muted); line-height:1.25}
+    .pprice{margin-top:8px; font-weight:900; font-size:13px}
+    .pactions{display:flex; flex-direction:column; gap:8px; align-items:flex-end}
+
+    /* Price / Warehouse */
+    .kv{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      margin-top:10px;
+    }
+    .kv .k{color:var(--muted); font-size:12px}
+    .kv .v{font-weight:900; font-size:13px}
+
+    .slider{
+      width:100%;
+      accent-color: var(--accent);
+    }
+
+    .chipRow{
+      display:flex; flex-wrap:wrap; gap:8px;
+      margin-top:10px;
+    }
+    .chip{
+      padding:8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size:12px;
+      user-select:none;
+    }
+
+    /* Little shimmer for "premium" feel */
+    .shimmer{
+      position:relative; overflow:hidden;
+    }
+    .shimmer::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+      transform: rotate(18deg) translateX(-60%);
+      animation: shine2 4.2s linear infinite;
+      pointer-events:none;
+    }
+    @keyframes shine2{
+      0%{transform: rotate(18deg) translateX(-60%)}
+      55%{transform: rotate(18deg) translateX(60%)}
+      100%{transform: rotate(18deg) translateX(150%)}
+    }
+
+    /* Scrollbar minimal (some browsers ignore) */
+    ::-webkit-scrollbar{width:10px}
+    ::-webkit-scrollbar-thumb{background: rgba(255,255,255,.10); border-radius:10px}
+    ::-webkit-scrollbar-track{background: transparent}
+  </style>
 </head>
-<body>
 
-<div class="topbar">
-<div id="title">💬 Чаты</div>
-<div id="balance">Баланс: $1000</div>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="brandText">
+        <div class="title" id="topTitle">Теневой Маркет</div>
+        <div class="sub" id="topSub">Чаты • Сделки • Прайс</div>
+      </div>
+    </div>
+    <div class="pillRow">
+      <div class="pill"><span class="dot"></span><span>Online</span></div>
+      <div class="pill"><span>Баланс</span> <strong id="balPill">0 ₸</strong></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel">
+      <!-- Chats -->
+      <div class="screen active" id="screen-chats">
+        <div class="toolbar">
+          <div class="left">
+            <div>
+              <div class="h">💬 Чаты</div>
+              <div class="hint">Клиенты пишут — ты продаёшь со склада</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="mini">Реп: <span id="repMini" class="strong">0</span></div>
+            <button class="btnGhost" id="btnPing">Пинг</button>
+          </div>
+        </div>
+        <div class="content">
+          <div class="chatList" id="chatList"></div>
+          <div style="height:14px"></div>
+          <div class="card shimmer">
+            <div class="strong">🔥 Механика</div>
+            <div class="muted small" style="margin-top:6px">
+              Прайс = наценка. Закупаешь в магазине → продаёшь в чатах. Репутация влияет на VIP-клиентов и шанс отмены.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dialog -->
+      <div class="screen" id="screen-dialog">
+        <div class="toolbar">
+          <div class="left">
+            <button class="btnGhost" id="btnBack">←</button>
+            <div style="min-width:0">
+              <div class="h" id="dlgName">Клиент</div>
+              <div class="hint" id="dlgHint">online • хочет скидку</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="mini">Склад: <span id="stockMini" class="strong">0</span></div>
+          </div>
+        </div>
+
+        <div class="convWrap">
+          <div class="conv" id="conv"></div>
+          <div class="composer">
+            <input class="input" id="msgInput" placeholder="Сообщение..." />
+            <button class="send" id="btnSend" title="Отправить">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="screen" id="screen-price">
+        <div class="toolbar">
+          <div class="left">
+            <div>
+              <div class="h">💰 Прайс</div>
+              <div class="hint">Настрой наценку и стратегию</div>
+            </div>
+          </div>
+          <button class="btn" id="btnAutoPrice">Авто-прайс</button>
+        </div>
+
+        <div class="content">
+          <div class="card">
+            <div class="strong">Наценка: <span id="markupLabel">35%</span></div>
+            <div class="muted small" style="margin-top:6px">Больше наценка → больше прибыль, но ниже шанс сделки.</div>
+            <div style="height:12px"></div>
+            <input class="slider" type="range" min="5" max="120" value="35" id="markup" />
+            <div class="chipRow">
+              <div class="chip">Шанс сделки зависит от репутации</div>
+              <div class="chip">VIP любят скорость</div>
+              <div class="chip">Слишком дорого → отказы</div>
+            </div>
+
+            <div class="kv">
+              <div>
+                <div class="k">Ожидаемый шанс сделки</div>
+                <div class="muted small">по текущей наценке</div>
+              </div>
+              <div class="v" id="dealChance">—</div>
+            </div>
+
+            <div class="kv">
+              <div>
+                <div class="k">Средняя прибыль / сделка</div>
+                <div class="muted small">по текущей корзине</div>
+              </div>
+              <div class="v" id="avgProfit">—</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <div class="strong">План</div>
+            <div class="muted small" style="margin-top:6px">
+              Закупай по “споту” в магазине, держи склад 8–15 ед, наценку 25–55% для стабильных продаж.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warehouse -->
+      <div class="screen" id="screen-warehouse">
+        <div class="toolbar">
+          <div class="left">
+            <div>
+              <div class="h">📦 Склад</div>
+              <div class="hint">Твой инвентарь и оборот</div>
+            </div>
+          </div>
+          <button class="btnGhost" id="btnClearLogs">Очистить лог</button>
+        </div>
+
+        <div class="content">
+          <div class="grid">
+            <div class="card">
+              <div class="muted small">Товаров</div>
+              <div class="strong" style="font-size:22px; margin-top:4px" id="whCount">0</div>
+            </div>
+            <div class="card">
+              <div class="muted small">Оборот</div>
+              <div class="strong" style="font-size:22px; margin-top:4px" id="whTurn">0 ₸</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <div class="strong">Инвентарь</div>
+            <div class="muted small" style="margin-top:6px">Тут хранится то, что реально продаётся в чатах.</div>
+            <div style="height:10px"></div>
+            <div id="invList" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <div class="strong">Лог событий</div>
+            <div class="muted small" style="margin-top:6px">Сделки, закупы, отмены.</div>
+            <div style="height:10px"></div>
+            <div id="logList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shop -->
+      <div class="screen" id="screen-shop">
+        <div class="toolbar">
+          <div class="left">
+            <div>
+              <div class="h">🛒 Магазин</div>
+              <div class="hint">Закупка по спотовым ценам (цены плавают)</div>
+            </div>
+          </div>
+          <button class="btn" id="btnRefresh">Обновить</button>
+        </div>
+
+        <div class="content">
+          <div class="seg" id="catSeg"></div>
+          <div style="height:12px"></div>
+          <div id="shopList" style="display:flex; flex-direction:column; gap:10px;"></div>
+          <div style="height:80px"></div>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div class="screen" id="screen-profile">
+        <div class="toolbar">
+          <div class="left">
+            <div>
+              <div class="h">⚙ Профиль</div>
+              <div class="hint">Статы, риски и прогресс</div>
+            </div>
+          </div>
+          <button class="btnGhost" id="btnReset">Сброс</button>
+        </div>
+
+        <div class="content">
+          <div class="card shimmer">
+            <div class="strong">Уровень: <span id="lvl">1</span></div>
+            <div class="muted small" style="margin-top:6px">Опыт растёт от успешных сделок.</div>
+
+            <div class="kv">
+              <div class="k">Репутация</div>
+              <div class="v" id="rep">0</div>
+            </div>
+            <div class="kv">
+              <div class="k">Сделок</div>
+              <div class="v" id="sales">0</div>
+            </div>
+            <div class="kv">
+              <div class="k">Отмен</div>
+              <div class="v" id="cancels">0</div>
+            </div>
+            <div class="kv">
+              <div class="k">VIP клиентов</div>
+              <div class="v" id="vipCount">0</div>
+            </div>
+
+            <div style="height:10px"></div>
+            <div class="muted small">
+              Риск отмены падает с ростом репутации. Слишком высокая наценка режет шанс сделки.
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <div class="strong">Подработки (скоро)</div>
+            <div class="muted small" style="margin-top:6px">
+              Дроп-доставка, перепрошивка устройств, скупка лома, “быстрые сделки”. Могу добавить следующей итерацией.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="navInner">
+      <button class="navBtn active" data-to="chats"><div class="navIcon">💬</div><div>Чаты</div></button>
+      <button class="navBtn" data-to="price"><div class="navIcon">💰</div><div>Прайс</div></button>
+      <button class="navBtn" data-to="warehouse"><div class="navIcon">📦</div><div>Склад</div></button>
+      <button class="navBtn" data-to="shop"><div class="navIcon">🛒</div><div>Магазин</div></button>
+      <button class="navBtn" data-to="profile"><div class="navIcon">⚙</div><div>Профиль</div></button>
+    </div>
+  </div>
 </div>
 
-<div class="screen" id="content"></div>
-
-<div class="nav">
-<button onclick="openTab('chat')" id="tabChat" class="active">💬<span>Чаты</span></button>
-<button onclick="openTab('price')" id="tabPrice">💰<span>Прайс</span></button>
-<button onclick="openTab('stock')" id="tabStock">📦<span>Склад</span></button>
-<button onclick="openTab('shop')" id="tabShop">🛒<span>Магазин</span></button>
-<button onclick="openTab('profile')" id="tabProfile">⚙<span>Профиль</span></button>
+<div class="toast" id="toast">
+  <div class="ticon" id="toastIcon">✨</div>
+  <div class="ttext" id="toastText">—</div>
 </div>
 
 <script>
-let balance=1000;
-let reputation=50;
-let stock=5;
-let price=500;
+/* ===========================
+   Utils
+=========================== */
+const fmt = (n)=> (Math.round(n)).toLocaleString('ru-RU') + ' ₸';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+const now=()=>new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
 
-const content=document.getElementById("content");
-
-function openTab(tab){
-document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-document.getElementById("tab"+capitalize(tab)).classList.add("active");
-
-if(tab==="chat") showChat();
-if(tab==="price") showPrice();
-if(tab==="stock") showStock();
-if(tab==="shop") showShop();
-if(tab==="profile") showProfile();
+function toast(icon, title, sub=""){
+  const t = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = icon;
+  const el = document.getElementById('toastText');
+  el.innerHTML = `${title}${sub?`<small>${sub}</small>`:''}`;
+  t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+/* ===========================
+   Data
+=========================== */
+const CATEGORIES = [
+  {id:'phones', name:'Смартфоны', icon:'📱'},
+  {id:'consoles', name:'Консоли', icon:'🎮'},
+  {id:'laptops', name:'Ноутбуки', icon:'💻'},
+  {id:'audio', name:'Аудио', icon:'🎧'},
+  {id:'wear', name:'Wearables', icon:'⌚'},
+];
 
-function showChat(){
-document.getElementById("title").innerText="💬 Чаты";
-content.innerHTML="";
-addMsg("client","Нужен товар. Сколько?");
+const PRODUCTS = [
+  // phones
+  {id:'ip13', cat:'phones', name:'iPhone 13', icon:'📱', desc:'128GB • состояние A', base: 180000},
+  {id:'ip14', cat:'phones', name:'iPhone 14', icon:'📱', desc:'128GB • состояние A-', base: 230000},
+  {id:'pix7', cat:'phones', name:'Pixel 7', icon:'📱', desc:'128GB • чистый андроид', base: 165000},
+  {id:'s23', cat:'phones', name:'Galaxy S23', icon:'📱', desc:'256GB • экран идеал', base: 240000},
+  // consoles
+  {id:'ps5', cat:'consoles', name:'PlayStation 5', icon:'🎮', desc:'Дисковая • гарантия', base: 260000},
+  {id:'xbox', cat:'consoles', name:'Xbox Series X', icon:'🎮', desc:'1TB • тихая', base: 255000},
+  {id:'switch', cat:'consoles', name:'Nintendo Switch', icon:'🎮', desc:'OLED • полный комплект', base: 165000},
+  // laptops
+  {id:'mba', cat:'laptops', name:'MacBook Air M1', icon:'💻', desc:'8/256 • батарея 90%+', base: 320000},
+  {id:'legion', cat:'laptops', name:'Lenovo Legion', icon:'💻', desc:'RTX • игровой', base: 520000},
+  {id:'asus', cat:'laptops', name:'ASUS VivoBook', icon:'💻', desc:'для учёбы/офиса', base: 240000},
+  // audio
+  {id:'airpods', cat:'audio', name:'AirPods Pro', icon:'🎧', desc:'шумодав • комплект', base: 105000},
+  {id:'sony', cat:'audio', name:'Sony WH-1000XM', icon:'🎧', desc:'топ шумодав', base: 145000},
+  {id:'jbl', cat:'audio', name:'JBL Charge', icon:'🎧', desc:'бас • автономность', base: 65000},
+  // wear
+  {id:'aw', cat:'wear', name:'Apple Watch', icon:'⌚', desc:'Series • ремешок', base: 115000},
+  {id:'garmin', cat:'wear', name:'Garmin', icon:'⌚', desc:'спорт • GPS', base: 135000},
+  {id:'band', cat:'wear', name:'Mi Band', icon:'⌚', desc:'бюджет • топ', base: 18000},
+];
+
+const CLIENTS = [
+  {id:'a', name:'Али', mood:'любит скидку', vip:false},
+  {id:'b', name:'Даня', mood:'хочет быстро', vip:false},
+  {id:'c', name:'Саня', mood:'торгуется', vip:false},
+  {id:'d', name:'Мира', mood:'VIP • платит сразу', vip:true},
+  {id:'e', name:'Нур', mood:'спрашивает детали', vip:false},
+  {id:'f', name:'Лёха', mood:'вечно сомневается', vip:false},
+];
+
+/* ===========================
+   State (with persistence)
+=========================== */
+const KEY='shadow_market_v2_ru';
+
+const defaultState = {
+  balance: 250000,
+  rep: 52,
+  xp: 0,
+  level: 1,
+  markup: 35,           // %
+  sales: 0,
+  cancels: 0,
+  turnover: 0,
+  inv: {},              // productId -> qty
+  chats: {},            // clientId -> messages [{from:'you'|'me', text, ts}]
+  unread: {},           // clientId -> number
+  spot: {},             // productId -> current buy price
+  activeClientId: null,
+  shopCat: 'phones',
+};
+
+let S = load() || defaultState;
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function load(){
+  try{
+    const v = localStorage.getItem(KEY);
+    if(!v) return null;
+    return JSON.parse(v);
+  }catch{ return null }
 }
 
-function addMsg(type,text){
-const div=document.createElement("div");
-div.className="msg "+type;
-div.innerText=text;
-content.appendChild(div);
+function ensureInit(){
+  // init spot prices
+  for(const p of PRODUCTS){
+    if(!S.spot[p.id]) S.spot[p.id] = spotPrice(p.base);
+  }
+  // init chats
+  for(const c of CLIENTS){
+    if(!S.chats[c.id]){
+      S.chats[c.id] = [];
+      S.unread[c.id] = 0;
+    }
+  }
+  // init some inventory
+  if(Object.keys(S.inv).length===0){
+    S.inv['band']=3;
+    S.inv['jbl']=2;
+    S.inv['pix7']=1;
+  }
+  save();
+}
+ensureInit();
+
+function spotPrice(base){
+  // +/- 18% swing
+  const k = 1 + (Math.random()*0.36 - 0.18);
+  return Math.round(base * k);
+}
+function refreshSpot(){
+  for(const p of PRODUCTS){
+    // smooth drift instead of full random
+    const cur = S.spot[p.id];
+    const target = spotPrice(p.base);
+    S.spot[p.id] = Math.round(cur*0.65 + target*0.35);
+  }
+  save();
 }
 
-function showPrice(){
-document.getElementById("title").innerText="💰 Прайс";
-content.innerHTML=`
-<div class="card">
-Цена за единицу:
-<input type="number" value="${price}" onchange="price=this.value">
-</div>
-`;
+/* ===========================
+   Economy helpers
+=========================== */
+function invCount(){
+  return Object.values(S.inv).reduce((a,b)=>a+b,0);
+}
+function hasAnyStock(){
+  return invCount() > 0;
+}
+function levelFromXp(xp){
+  // simple curve
+  let lvl = 1;
+  let need = 120;
+  let left = xp;
+  while(left >= need){
+    left -= need;
+    lvl++;
+    need = Math.round(need * 1.22);
+  }
+  return lvl;
+}
+function sellPrice(productId){
+  const buy = S.spot[productId];
+  return Math.round(buy * (1 + S.markup/100));
+}
+function dealChanceBase(){
+  // Higher markup reduces chance.
+  // Reputation increases chance.
+  const m = S.markup; // 5..120
+  const rep = S.rep;  // 0..100 (we’ll clamp)
+  const repN = clamp(rep, 0, 100)/100;
+  // base chance with markup:
+  let base = 0.78 - (m/140); // markup hurts
+  base += (repN * 0.22);     // rep helps
+  base = clamp(base, 0.10, 0.92);
+  return base;
+}
+function cancelChance(){
+  // cancellation risk decreases with rep
+  const repN = clamp(S.rep,0,100)/100;
+  return clamp(0.22 - repN*0.16, 0.04, 0.22);
 }
 
-function showStock(){
-document.getElementById("title").innerText="📦 Склад";
-content.innerHTML=`
-<div class="card">Товаров на складе: ${stock}</div>
-`;
+/* ===========================
+   UI bindings
+=========================== */
+const screens = {
+  chats: document.getElementById('screen-chats'),
+  dialog: document.getElementById('screen-dialog'),
+  price: document.getElementById('screen-price'),
+  warehouse: document.getElementById('screen-warehouse'),
+  shop: document.getElementById('screen-shop'),
+  profile: document.getElementById('screen-profile'),
+};
+
+const navBtns = Array.from(document.querySelectorAll('.navBtn'));
+navBtns.forEach(b=>b.addEventListener('click', ()=>openScreen(b.dataset.to)));
+
+function openScreen(name){
+  for(const k in screens) screens[k].classList.remove('active');
+  screens[name].classList.add('active');
+
+  navBtns.forEach(b=>b.classList.toggle('active', b.dataset.to===name));
+
+  if(name==='chats') renderChats();
+  if(name==='shop') renderShop();
+  if(name==='warehouse') renderWarehouse();
+  if(name==='price') renderPrice();
+  if(name==='profile') renderProfile();
+
+  // topbar subtitle hint
+  const sub = document.getElementById('topSub');
+  const map = {
+    chats:'Чаты • сделки в переписке',
+    price:'Прайс • наценка • стратегия',
+    warehouse:'Склад • инвентарь • лог',
+    shop:'Магазин • закупка • спот',
+    profile:'Профиль • статы • прогресс',
+    dialog:'Диалог • продажа в чате'
+  };
+  sub.textContent = map[name] || 'Чаты • Сделки • Прайс';
+
+  save();
+  tickTop();
 }
 
-function showShop(){
-document.getElementById("title").innerText="🛒 Магазин";
-content.innerHTML=`
-<div class="card">
-Закупить товар за $200
-<button class="action" onclick="buy()">Купить</button>
-</div>
-`;
+function tickTop(){
+  document.getElementById('balPill').textContent = fmt(S.balance);
+  document.getElementById('repMini').textContent = S.rep;
+}
+tickTop();
+
+/* ===========================
+   Chats
+=========================== */
+const chatList = document.getElementById('chatList');
+const btnPing = document.getElementById('btnPing');
+
+btnPing.addEventListener('click', ()=>{
+  // create 1-2 new incoming messages
+  spawnIncoming(rnd(1,2));
+  toast('📨','Пинг отправлен','Клиенты активизировались');
+  renderChats();
+});
+
+function lastPreview(clientId){
+  const msgs = S.chats[clientId];
+  if(!msgs || msgs.length===0) return '…';
+  const last = msgs[msgs.length-1];
+  return (last.from==='you' ? '' : 'Вы: ') + last.text;
 }
 
-function buy(){
-if(balance>=200){
-balance-=200;
-stock++;
-update();
-}else alert("Недостаточно денег");
+function renderChats(){
+  tickTop();
+  chatList.innerHTML='';
+  for(const c of CLIENTS){
+    const unread = S.unread[c.id] || 0;
+    const vip = c.vip ? ' • VIP' : '';
+    const el = document.createElement('div');
+    el.className='chatItem';
+    el.innerHTML = `
+      <div class="ava">${c.name.slice(0,1).toUpperCase()}</div>
+      <div class="chatMeta">
+        <div class="chatName">${c.name}<span class="muted small">${vip}</span></div>
+        <div class="chatPreview">${escapeHtml(lastPreview(c.id))}</div>
+      </div>
+      ${unread>0?`<div class="badge">${unread}</div>`:''}
+    `;
+    el.addEventListener('click', ()=>openDialog(c.id));
+    chatList.appendChild(el);
+  }
 }
 
-function showProfile(){
-document.getElementById("title").innerText="⚙ Профиль";
-content.innerHTML=`
-<div class="card">Репутация: ${reputation}</div>
-`;
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
 }
 
-function update(){
-document.getElementById("balance").innerText="Баланс: $"+balance;
+/* ===========================
+   Dialog
+=========================== */
+const conv = document.getElementById('conv');
+const msgInput = document.getElementById('msgInput');
+const btnSend = document.getElementById('btnSend');
+const btnBack = document.getElementById('btnBack');
+const stockMini = document.getElementById('stockMini');
+
+btnBack.addEventListener('click', ()=>openScreen('chats'));
+
+btnSend.addEventListener('click', sendMsg);
+msgInput.addEventListener('keydown', (e)=>{
+  if(e.key==='Enter') sendMsg();
+});
+
+function openDialog(clientId){
+  S.activeClientId = clientId;
+  S.unread[clientId] = 0;
+
+  const c = CLIENTS.find(x=>x.id===clientId);
+  document.getElementById('dlgName').textContent = c.name + (c.vip ? ' • VIP' : '');
+  document.getElementById('dlgHint').textContent = `online • ${c.mood}`;
+  stockMini.textContent = invCount();
+
+  openScreen('dialog');
+  renderDialog();
 }
 
-showChat();
+function renderDialog(){
+  tickTop();
+  stockMini.textContent = invCount();
+  const cid = S.activeClientId;
+  const msgs = S.chats[cid] || [];
+  conv.innerHTML = '';
+  for(const m of msgs){
+    const b = document.createElement('div');
+    b.className = `bubble ${m.from==='me' ? 'me' : 'you'}`;
+    b.innerHTML = `${escapeHtml(m.text)}<small>${m.ts}</small>`;
+    conv.appendChild(b);
+  }
+  conv.scrollTop = conv.scrollHeight;
+
+  // If chat is empty, seed with a request
+  if(msgs.length===0){
+    addIncoming(cid, makeClientRequest(cid), true);
+  }
+}
+
+function addMessage(cid, from, text){
+  if(!S.chats[cid]) S.chats[cid]=[];
+  S.chats[cid].push({from, text, ts: now()});
+  save();
+}
+
+function addIncoming(cid, text, immediate=false){
+  const doIt = ()=>{
+    addMessage(cid, 'you', text);
+    if(S.activeClientId===cid && screens.dialog.classList.contains('active')){
+      renderDialog();
+    }else{
+      S.unread[cid] = (S.unread[cid]||0) + 1;
+    }
+    save();
+  };
+  if(immediate) return doIt();
+  setTimeout(doIt, rnd(350, 900));
+}
+
+function addOutgoing(cid, text){
+  addMessage(cid, 'me', text);
+  save();
+}
+
+function makeClientRequest(cid){
+  const wants = pick(PRODUCTS);
+  const phrases = [
+    `Привет. Есть ${wants.name}?`,
+    `Сколько будет ${wants.name}?`,
+    `Нужен ${wants.name}, цена?`,
+    `Есть в наличии ${wants.name}? Срочно.`,
+    `Дашь цену на ${wants.name}?`,
+  ];
+  return pick(phrases);
+}
+
+function sendMsg(){
+  const cid = S.activeClientId;
+  if(!cid) return;
+
+  const t = (msgInput.value || '').trim();
+  if(!t) return;
+
+  msgInput.value='';
+  addOutgoing(cid, t);
+  renderDialog();
+
+  // If user asks for price or says "цена", respond with offer + attempt sale
+  const low = t.toLowerCase();
+
+  if(low.includes('цена') || low.includes('сколько') || low.includes('прайс') || low.includes('почём')){
+    offerAndMaybeSell(cid);
+    return;
+  }
+
+  // quick commands
+  if(low === '/оффер' || low === '/offer'){
+    offerAndMaybeSell(cid);
+    return;
+  }
+  if(low === '/склад' || low === '/stock'){
+    addIncoming(cid, `На складе сейчас ${invCount()} ед.`, false);
+    return;
+  }
+
+  // otherwise client replies
+  const replies = [
+    'Ок, понял.',
+    'Можешь скинуть подробности?',
+    'Скидка будет?',
+    'Если быстро — беру.',
+    'Сомневаюсь…',
+  ];
+  addIncoming(cid, pick(replies), false);
+}
+
+function offerAndMaybeSell(cid){
+  if(!hasAnyStock()){
+    addIncoming(cid, 'Сейчас пусто на складе 😶 Зайди в 🛒 Магазин и закупи товар.', false);
+    toast('📦','Склад пуст','Закупись в магазине');
+    return;
+  }
+
+  // pick an item that exists
+  const availableIds = Object.keys(S.inv).filter(id => (S.inv[id]||0)>0);
+  const pid = pick(availableIds);
+  const p = PRODUCTS.find(x=>x.id===pid);
+  const buy = S.spot[pid];
+  const sell = sellPrice(pid);
+
+  const chance = dealChanceBase();
+  const vip = (CLIENTS.find(x=>x.id===cid)?.vip) ? 0.12 : 0; // vip boosts chance
+  const finalChance = clamp(chance + vip, 0.08, 0.95);
+
+  addIncoming(cid, `Есть ${p.name}. Моя цена: ${fmt(sell)}.\n(закуп: ${fmt(buy)} • наценка ${S.markup}%)`, false);
+
+  // Attempt sale after a beat
+  setTimeout(()=>{
+    const willBuy = Math.random() < finalChance;
+    if(!willBuy){
+      // negotiate / refuse
+      S.rep = clamp(S.rep - rnd(1,2), 0, 100);
+      const neg = [
+        'Дорого. Я пас.',
+        'Можешь скинуть цену? Иначе не беру.',
+        'Нашёл дешевле.',
+        'Бро, не вариант за такую.',
+      ];
+      addIncoming(cid, pick(neg), true);
+      toast('❌','Сделка сорвалась',`Шанс был ${Math.round(finalChance*100)}%`);
+      save();
+      tickTop();
+      if(S.activeClientId===cid) renderDialog();
+      return;
+    }
+
+    // If buy, possible cancel risk
+    const cancel = Math.random() < cancelChance();
+    if(cancel){
+      S.cancels++;
+      S.rep = clamp(S.rep - rnd(2,4), 0, 100);
+      const can = [
+        'Сорян, отмена. Передумал.',
+        'Неактуально, отменяю.',
+        'Ладно, пока не надо.',
+      ];
+      addIncoming(cid, pick(can), true);
+      logEvent(`❌ Отмена сделки: ${p.name}`);
+      toast('⚠️','Отмена','Репутация упала');
+      save();
+      tickTop();
+      if(S.activeClientId===cid) renderDialog();
+      return;
+    }
+
+    // Complete sale
+    S.inv[pid] = (S.inv[pid]||0) - 1;
+    if(S.inv[pid] <= 0) delete S.inv[pid];
+
+    S.balance += sell;
+    S.turnover += sell;
+    S.sales++;
+
+    const profit = sell - buy;
+    S.rep = clamp(S.rep + (profit>0 ? rnd(1,3) : 1), 0, 100);
+
+    // xp
+    S.xp += Math.max(10, Math.round(profit/20000));
+    S.level = levelFromXp(S.xp);
+
+    addIncoming(cid, `Беру 🤝 Перевёл ${fmt(sell)}.`, true);
+    addIncoming(cid, `Скинь данные/доставку.`, false);
+
+    logEvent(`✅ Продажа: ${p.name} • +${fmt(sell)} • профит ~ ${fmt(profit)}`);
+    toast('✅','Продано',`${p.name} • +${fmt(sell)}`);
+
+    save();
+    tickTop();
+    stockMini.textContent = invCount();
+    if(screens.dialog.classList.contains('active') && S.activeClientId===cid) renderDialog();
+  }, rnd(650, 1100));
+}
+
+/* ===========================
+   Price screen
+=========================== */
+const markup = document.getElementById('markup');
+const markupLabel = document.getElementById('markupLabel');
+const dealChanceEl = document.getElementById('dealChance');
+const avgProfitEl = document.getElementById('avgProfit');
+const btnAutoPrice = document.getElementById('btnAutoPrice');
+
+markup.value = S.markup;
+
+markup.addEventListener('input', ()=>{
+  S.markup = Number(markup.value);
+  save();
+  renderPrice(true);
+});
+
+btnAutoPrice.addEventListener('click', ()=>{
+  // simple smart: if rep low -> reduce markup, else moderate
+  if(S.rep < 40) S.markup = 22;
+  else if(S.rep < 60) S.markup = 35;
+  else S.markup = 48;
+  markup.value = S.markup;
+  save();
+  renderPrice();
+  toast('🧠','Авто-прайс',`Наценка выставлена: ${S.markup}%`);
+});
+
+function renderPrice(quiet=false){
+  tickTop();
+  markupLabel.textContent = `${S.markup}%`;
+
+  const chance = dealChanceBase();
+  dealChanceEl.textContent = `${Math.round(chance*100)}%`;
+
+  // avg profit based on current inventory buy prices
+  const ids = Object.keys(S.inv);
+  let avg = 0;
+  if(ids.length){
+    let sum=0, cnt=0;
+    for(const id of ids){
+      const qty = S.inv[id]||0;
+      const buy = S.spot[id];
+      const sell = sellPrice(id);
+      sum += (sell - buy) * qty;
+      cnt += qty;
+    }
+    avg = cnt? (sum/cnt) : 0;
+  }else{
+    // approximate average by a typical product
+    const p = pick(PRODUCTS);
+    avg = sellPrice(p.id) - S.spot[p.id];
+  }
+  avgProfitEl.textContent = fmt(avg);
+
+  if(!quiet) toast('💰','Прайс обновлён',`Шанс сделки ~ ${Math.round(chance*100)}%`);
+}
+
+/* ===========================
+   Warehouse
+=========================== */
+const invList = document.getElementById('invList');
+const logList = document.getElementById('logList');
+const whCount = document.getElementById('whCount');
+const whTurn = document.getElementById('whTurn');
+const btnClearLogs = document.getElementById('btnClearLogs');
+
+S.logs = S.logs || [];
+save();
+
+btnClearLogs.addEventListener('click', ()=>{
+  S.logs = [];
+  save();
+  renderWarehouse();
+  toast('🧹','Лог очищен');
+});
+
+function logEvent(text){
+  S.logs = S.logs || [];
+  S.logs.unshift({ts: now(), text});
+  S.logs = S.logs.slice(0, 30);
+  save();
+}
+
+function renderWarehouse(){
+  tickTop();
+  whCount.textContent = invCount();
+  whTurn.textContent = fmt(S.turnover);
+
+  invList.innerHTML='';
+  const ids = Object.keys(S.inv);
+  if(!ids.length){
+    invList.innerHTML = `<div class="muted small">Пусто. Закупись в 🛒 Магазине.</div>`;
+  }else{
+    for(const id of ids){
+      const p = PRODUCTS.find(x=>x.id===id);
+      const qty = S.inv[id];
+      const buy = S.spot[id];
+      const sell = sellPrice(id);
+      const el = document.createElement('div');
+      el.className='kv';
+      el.innerHTML = `
+        <div style="min-width:0">
+          <div class="strong" style="font-size:13px">${p.icon} ${escapeHtml(p.name)}</div>
+          <div class="muted small">закуп: ${fmt(buy)} • продажа: ${fmt(sell)}</div>
+        </div>
+        <div class="v">x${qty}</div>
+      `;
+      invList.appendChild(el);
+    }
+  }
+
+  logList.innerHTML='';
+  const logs = S.logs || [];
+  if(!logs.length){
+    logList.innerHTML = `<div class="muted small">Пока тихо…</div>`;
+  }else{
+    for(const l of logs){
+      const el = document.createElement('div');
+      el.className='kv';
+      el.innerHTML = `
+        <div style="min-width:0">
+          <div class="strong" style="font-size:12px">${escapeHtml(l.text)}</div>
+          <div class="muted small">${l.ts}</div>
+        </div>
+        <div class="mini">лог</div>
+      `;
+      logList.appendChild(el);
+    }
+  }
+}
+
+/* ===========================
+   Shop
+=========================== */
+const catSeg = document.getElementById('catSeg');
+const shopList = document.getElementById('shopList');
+const btnRefresh = document.getElementById('btnRefresh');
+
+btnRefresh.addEventListener('click', ()=>{
+  refreshSpot();
+  renderShop();
+  toast('🔄','Цены обновлены','Спот рынок двинулся');
+});
+
+function renderCats(){
+  catSeg.innerHTML='';
+  for(const c of CATEGORIES){
+    const b = document.createElement('button');
+    b.textContent = `${c.icon} ${c.name}`;
+    b.classList.toggle('active', S.shopCat===c.id);
+    b.addEventListener('click', ()=>{
+      S.shopCat = c.id;
+      save();
+      renderShop();
+    });
+    catSeg.appendChild(b);
+  }
+}
+
+function renderShop(){
+  tickTop();
+  renderCats();
+  shopList.innerHTML='';
+
+  const list = PRODUCTS.filter(p=>p.cat===S.shopCat);
+
+  for(const p of list){
+    const buy = S.spot[p.id];
+    const sell = sellPrice(p.id);
+    const margin = sell - buy;
+
+    const el = document.createElement('div');
+    el.className='prod';
+    el.innerHTML = `
+      <div class="picon">${p.icon}</div>
+      <div class="pmeta">
+        <div class="pname">${escapeHtml(p.name)}</div>
+        <div class="pdesc">${escapeHtml(p.desc)}</div>
+        <div class="pprice">Закуп: <span class="strong">${fmt(buy)}</span> • Продажа: <span class="strong">${fmt(sell)}</span></div>
+        <div class="muted small" style="margin-top:4px">Маржа ~ <span class="strong">${fmt(margin)}</span></div>
+      </div>
+      <div class="pactions">
+        <button class="btn" style="padding:10px 12px" data-buy="${p.id}">Купить</button>
+        <button class="btnGhost" style="padding:10px 12px" data-buy3="${p.id}">x3</button>
+      </div>
+    `;
+
+    el.querySelector('[data-buy]').addEventListener('click', ()=>buyProduct(p.id, 1));
+    el.querySelector('[data-buy3]').addEventListener('click', ()=>buyProduct(p.id, 3));
+    shopList.appendChild(el);
+  }
+}
+
+function buyProduct(pid, qty){
+  const buy = S.spot[pid];
+  const cost = buy * qty;
+  if(S.balance < cost){
+    toast('💸','Не хватает',`Нужно ${fmt(cost)}, у тебя ${fmt(S.balance)}`);
+    return;
+  }
+  S.balance -= cost;
+  S.inv[pid] = (S.inv[pid]||0) + qty;
+
+  logEvent(`🛒 Закуп: ${PRODUCTS.find(x=>x.id===pid).name} • x${qty} • -${fmt(cost)}`);
+  save();
+  tickTop();
+  toast('🛒','Закуплено',`x${qty} • -${fmt(cost)}`);
+}
+
+/* ===========================
+   Profile
+=========================== */
+const btnReset = document.getElementById('btnReset');
+btnReset.addEventListener('click', ()=>{
+  if(!confirm('Сбросить прогресс?')) return;
+  localStorage.removeItem(KEY);
+  S = JSON.parse(JSON.stringify(defaultState));
+  ensureInit();
+  toast('♻️','Сброшено','Перезапусти страницу');
+  location.reload();
+});
+
+function renderProfile(){
+  tickTop();
+  document.getElementById('lvl').textContent = S.level;
+  document.getElementById('rep').textContent = S.rep;
+  document.getElementById('sales').textContent = S.sales;
+  document.getElementById('cancels').textContent = S.cancels;
+  document.getElementById('vipCount').textContent = CLIENTS.filter(c=>c.vip).length;
+}
+
+/* ===========================
+   Incoming generator
+=========================== */
+function spawnIncoming(n=1){
+  for(let i=0;i<n;i++){
+    const c = pick(CLIENTS);
+    addIncoming(c.id, makeClientRequest(c.id), false);
+  }
+  save();
+}
+
+/* periodic client messages */
+setInterval(()=>{
+  // 35% chance every 18s to receive 1 new message
+  if(Math.random() < 0.35){
+    spawnIncoming(1);
+    if(screens.chats.classList.contains('active')) renderChats();
+    if(screens.dialog.classList.contains('active')) renderDialog();
+    toast('📩','Новое сообщение','Открой чаты');
+  }
+}, 18000);
+
+/* ===========================
+   Boot
+=========================== */
+// seed a couple of chats
+if(Object.values(S.chats).every(arr=>arr.length===0)){
+  addIncoming('a', 'Привет. Есть что-нибудь из техники? Цена?', true);
+  addIncoming('d', 'Мне нужен девайс срочно. Что есть в наличии?', true);
+}
+renderChats();
+renderPrice(true);
+renderShop();
+renderWarehouse();
+renderProfile();
+
+document.getElementById('stockMini').textContent = invCount();
+
+/* ===========================
+   Small extras
+=========================== */
+document.getElementById('btnRefresh').addEventListener('click', ()=>{});
+document.getElementById('btnReset').addEventListener('click', ()=>{});
+
 </script>
-
 </body>
-</html>
+  </html>
