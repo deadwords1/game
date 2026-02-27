@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shadow Market</title>
+<title>Теневой Маркет</title>
 <style>
 *{box-sizing:border-box}
 body{
@@ -10,236 +10,202 @@ margin:0;
 font-family:-apple-system,BlinkMacSystemFont,Arial;
 background:#0f1720;
 color:white;
-display:flex;
 height:100vh;
-}
-
-/* LEFT CHAT LIST */
-.sidebar{
-width:35%;
-background:#111b26;
-border-right:1px solid #1c2733;
-overflow-y:auto;
-}
-
-.header{
-padding:16px;
-font-weight:600;
-font-size:18px;
-border-bottom:1px solid #1c2733;
-}
-
-.chat-item{
-display:flex;
-align-items:center;
-gap:10px;
-padding:14px;
-cursor:pointer;
-border-bottom:1px solid #1c2733;
-}
-
-.chat-item:hover{
-background:#17212b;
-}
-
-.avatar{
-width:42px;
-height:42px;
-border-radius:50%;
-background:#2b5278;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-}
-
-/* MAIN CHAT */
-.main{
-flex:1;
 display:flex;
 flex-direction:column;
-background:#0f1720;
 }
 
+/* ШАПКА */
 .topbar{
+background:#17212b;
 padding:14px;
-background:#111b26;
-border-bottom:1px solid #1c2733;
 display:flex;
 justify-content:space-between;
+align-items:center;
+font-weight:600;
 }
 
-.chat{
+/* ОСНОВА */
+.screen{
 flex:1;
 overflow-y:auto;
-padding:16px;
-display:flex;
-flex-direction:column;
-gap:10px;
+padding:15px;
 }
 
+/* ЧАТ */
 .msg{
-max-width:70%;
 padding:10px 14px;
 border-radius:16px;
+margin-bottom:8px;
+max-width:75%;
 font-size:14px;
 }
-
 .client{
-background:#17212b;
+background:#1f2c38;
 align-self:flex-start;
 border-bottom-left-radius:4px;
 }
-
 .me{
 background:#2b5278;
 align-self:flex-end;
 border-bottom-right-radius:4px;
 }
 
-.inputbar{
-display:flex;
-padding:10px;
+/* ВКЛАДКИ */
+.nav{
+height:60px;
 background:#111b26;
-gap:10px;
+display:flex;
+justify-content:space-around;
+align-items:center;
+border-top:1px solid #222;
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+}
+
+.nav button{
+background:none;
+border:none;
+color:#aaa;
+font-size:12px;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+.nav button.active{
+color:#4ea1ff;
+}
+
+/* ПРАЙС / ПАНЕЛИ */
+.card{
+background:#17212b;
+padding:15px;
+border-radius:12px;
+margin-bottom:12px;
 }
 
 input{
-flex:1;
+width:100%;
 padding:10px;
-border-radius:20px;
+border-radius:8px;
 border:none;
-outline:none;
-background:#17212b;
+background:#1f2c38;
 color:white;
+margin-top:6px;
 }
 
-button{
-padding:10px 16px;
+button.action{
+margin-top:10px;
+padding:10px;
 border:none;
-border-radius:20px;
+border-radius:8px;
 background:#2b5278;
 color:white;
-cursor:pointer;
-}
-
-/* PRICE PANEL */
-.price{
-width:220px;
-background:#0b141c;
-border-left:1px solid #1c2733;
-padding:15px;
-}
-
-.stat{
-margin-bottom:12px;
-font-size:14px;
+width:100%;
 }
 </style>
 </head>
 <body>
 
-<div class="sidebar">
-<div class="header">💬 Chats</div>
-<div id="clients"></div>
-</div>
-
-<div class="main">
 <div class="topbar">
-<div id="chatName">Select chat</div>
-<div id="balance">Balance: $1000</div>
+<div id="title">💬 Чаты</div>
+<div id="balance">Баланс: $1000</div>
 </div>
 
-<div class="chat" id="chat"></div>
+<div class="screen" id="content"></div>
 
-<div class="inputbar">
-<input id="reply" placeholder="Message...">
-<button onclick="sendReply()">Send</button>
-</div>
-</div>
-
-<div class="price">
-<h3>📦 Price</h3>
-<div class="stat">Your price:</div>
-<input type="number" id="price" value="500">
-<br><br>
-<div class="stat">Reputation: <span id="rep">50</span></div>
-<div class="stat">Sales: <span id="sales">0</span></div>
+<div class="nav">
+<button onclick="openTab('chat')" id="tabChat" class="active">💬<span>Чаты</span></button>
+<button onclick="openTab('price')" id="tabPrice">💰<span>Прайс</span></button>
+<button onclick="openTab('stock')" id="tabStock">📦<span>Склад</span></button>
+<button onclick="openTab('shop')" id="tabShop">🛒<span>Магазин</span></button>
+<button onclick="openTab('profile')" id="tabProfile">⚙<span>Профиль</span></button>
 </div>
 
 <script>
 let balance=1000;
 let reputation=50;
-let sales=0;
-let currentClient=null;
+let stock=5;
+let price=500;
 
-const clientsData=["Alex","Mark","Sasha","Ivan","Leo","Nikita"];
+const content=document.getElementById("content");
 
-const clients=document.getElementById("clients");
-const chat=document.getElementById("chat");
+function openTab(tab){
+document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+document.getElementById("tab"+capitalize(tab)).classList.add("active");
 
-clientsData.forEach(name=>{
-const div=document.createElement("div");
-div.className="chat-item";
-div.innerHTML=`
-<div class="avatar">${name[0]}</div>
-<div>${name}</div>
-`;
-div.onclick=()=>openChat(name);
-clients.appendChild(div);
-});
+if(tab==="chat") showChat();
+if(tab==="price") showPrice();
+if(tab==="stock") showStock();
+if(tab==="shop") showShop();
+if(tab==="profile") showProfile();
+}
 
-function openChat(name){
-currentClient=name;
-document.getElementById("chatName").innerText=name;
-chat.innerHTML="";
-addMsg("client","Need product. What's your price?");
+function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+
+function showChat(){
+document.getElementById("title").innerText="💬 Чаты";
+content.innerHTML="";
+addMsg("client","Нужен товар. Сколько?");
 }
 
 function addMsg(type,text){
 const div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=text;
-chat.appendChild(div);
-chat.scrollTop=chat.scrollHeight;
+content.appendChild(div);
 }
 
-function sendReply(){
-if(!currentClient) return;
-
-const price=parseInt(document.getElementById("price").value);
-addMsg("me","Price: $"+price);
-
-let chance=Math.random();
-
-if(price<400){
-balance+=price;
-sales++;
-reputation+=2;
-addMsg("client","Deal 🤝");
-}else if(price<700){
-if(chance>0.4){
-balance+=price;
-sales++;
-reputation+=1;
-addMsg("client","Okay, sending.");
-}else{
-reputation-=2;
-addMsg("client","Too expensive.");
-}
-}else{
-reputation-=5;
-addMsg("client","Scam. I'm out.");
+function showPrice(){
+document.getElementById("title").innerText="💰 Прайс";
+content.innerHTML=`
+<div class="card">
+Цена за единицу:
+<input type="number" value="${price}" onchange="price=this.value">
+</div>
+`;
 }
 
-updateStats();
+function showStock(){
+document.getElementById("title").innerText="📦 Склад";
+content.innerHTML=`
+<div class="card">Товаров на складе: ${stock}</div>
+`;
 }
 
-function updateStats(){
-document.getElementById("balance").innerText="Balance: $"+balance;
-document.getElementById("rep").innerText=reputation;
-document.getElementById("sales").innerText=sales;
+function showShop(){
+document.getElementById("title").innerText="🛒 Магазин";
+content.innerHTML=`
+<div class="card">
+Закупить товар за $200
+<button class="action" onclick="buy()">Купить</button>
+</div>
+`;
 }
+
+function buy(){
+if(balance>=200){
+balance-=200;
+stock++;
+update();
+}else alert("Недостаточно денег");
+}
+
+function showProfile(){
+document.getElementById("title").innerText="⚙ Профиль";
+content.innerHTML=`
+<div class="card">Репутация: ${reputation}</div>
+`;
+}
+
+function update(){
+document.getElementById("balance").innerText="Баланс: $"+balance;
+}
+
+showChat();
 </script>
 
 </body>
